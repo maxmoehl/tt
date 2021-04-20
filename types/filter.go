@@ -17,8 +17,6 @@ const (
 
 	filtersSeparator = ";"
 	valuesSeparator  = ","
-
-	dateFormat = "2006-01-02"
 )
 
 type Filter interface {
@@ -103,6 +101,9 @@ func (f filter) Filter(timers Timers) (filtered Timers) {
 // data.
 func GetFilter(filterString string) (Filter, error) {
 	var F filter
+	if len(filterString) == 0 {
+		return F, nil
+	}
 	for _, f := range strings.Split(filterString, filtersSeparator) {
 		key, values, err := parseFilter(f)
 		if err != nil {
@@ -119,6 +120,16 @@ func GetFilter(filterString string) (Filter, error) {
 		F.Until = F.Until.Add(time.Hour * 24)
 	}
 	return F, nil
+}
+
+func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
+	return filter{
+		Project: projects,
+		Task:    tasks,
+		Since:   since,
+		Until:   until,
+		Tags:    tags,
+	}
 }
 
 func parseFilter(in string) (key, values string, err error) {
@@ -145,12 +156,12 @@ func parseValuesInto(key, values string, f *filter) (err error) {
 		if !f.Since.IsZero() {
 			err = fmt.Errorf("redeclared filter since")
 		}
-		f.Since, err = time.Parse(dateFormat, values)
+		f.Since, err = time.Parse(utils.DateFormat, values)
 	case filterUntil:
 		if !f.Until.IsZero() {
 			err = fmt.Errorf("redeclared filter until")
 		}
-		f.Until, err = time.Parse(dateFormat, values)
+		f.Until, err = time.Parse(utils.DateFormat, values)
 	case filterTags:
 		if f.Tags != nil {
 			err = fmt.Errorf("redeclared filter tags")

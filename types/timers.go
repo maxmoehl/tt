@@ -73,6 +73,27 @@ func (timers Timers) Running() (bool, int) {
 	return false, -1
 }
 
+func (timers Timers) Last(running bool) (t Timer) {
+	for _, timer := range timers {
+		if !running && timer.End.IsZero() {
+			continue
+		}
+		if timer.Start.After(t.Start) {
+			t = timer
+		}
+	}
+	return
+}
+
+func (timers Timers) First() (t Timer) {
+	for _, timer := range timers {
+		if timer.Start.Before(t.Start) || t.Start.IsZero() {
+			t = timer
+		}
+	}
+	return
+}
+
 func (timers Timers) Filter(f Filter) (filtered Timers) {
 	if f == nil {
 		return timers

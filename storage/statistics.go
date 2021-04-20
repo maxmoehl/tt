@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"math"
 	"time"
 
 	"github.com/maxmoehl/tt/config"
 	"github.com/maxmoehl/tt/types"
+	"github.com/maxmoehl/tt/utils"
 )
 
 func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic types.Statistic, err error) {
@@ -13,14 +15,48 @@ func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic t
 	if err != nil {
 		return
 	}
+	return getTimeStatisticsForTimers(timers, byProject, byTask)
+}
+
+func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[string]types.Statistic, error) {
+	timers, err := s.GetTimers(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	b := timers.First().Start
+	e := timers.Last(false).End
+
+	currentDay := time.Date(b.Year(), b.Month(), b.Day(), 0, 0, 0, 0, time.Local)
+	end := time.Date(e.Year(), e.Month(), e.Day()+1, 0, 0, 0, 0, time.Local)
+
+	statistics := make(map[string]types.Statistic)
+
+	for currentDay.Before(end) {
+		f := types.NewFilter(nil, nil, nil, currentDay, currentDay.Add(time.Hour * 24))
+		statistic, err := getTimeStatisticsForTimers(timers.Filter(f), byProject, byTask)
+		if err != nil {
+			return nil, err
+		}
+		statistics[currentDay.Format(utils.DateFormat)] = statistic
+
+		currentDay = currentDay.Add(time.Hour * 24)
+	}
+	return statistics, nil
+}
+
+func getTimeStatisticsForTimers(timers types.Timers, byProject, byTask bool) (statistic types.Statistic, err error) {
 	statistic.Worked = workTime(timers)
 	statistic.Breaks = breakTime(timers)
 	statistic.Planned, err = plannedTime(timers)
 	if err != nil {
 		return types.Statistic{}, err
 	}
-	statistic.Difference = statistic.Planned - statistic.Worked
+	statistic.Difference =  statistic.Worked - statistic.Planned
 	statistic.Percentage = float64(statistic.Worked) / float64(statistic.Planned)
+	if math.IsNaN(statistic.Percentage) || math.IsInf(statistic.Percentage, 0) {
+		statistic.Percentage = 0
+	}
 	if byProject {
 		statistic.ByProjects = getTimeByProjects(timers, byTask)
 	}

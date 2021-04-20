@@ -10,6 +10,8 @@ import (
 
 const (
 	WarningNoArgumentsAccepted = "this command does not accept any arguments"
+
+	DateFormat = "2006-01-02"
 )
 
 func PrintWarning(msg string) {
@@ -26,7 +28,7 @@ func PrintError(err error, silent bool) {
 }
 
 func StringSliceContains(strings []string, s string) bool {
-	for _ , t := range strings {
+	for _, t := range strings {
 		if t == s {
 			return true
 		}

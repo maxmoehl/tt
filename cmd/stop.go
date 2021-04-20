@@ -26,9 +26,9 @@ import (
 )
 
 var stopCmd = &cobra.Command{
-	Use:   "stop",
+	Use:     "stop",
 	Aliases: []string{"end"},
-	Short: "Stops a timer.",
+	Short:   "Stops a timer.",
 	Long: `This command stops the current timer. If the timer is currently in a break
 the break is also ended without further notice.
 

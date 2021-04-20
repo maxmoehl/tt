@@ -33,7 +33,7 @@ func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[st
 	statistics := make(map[string]types.Statistic)
 
 	for currentDay.Before(end) {
-		f := types.NewFilter(nil, nil, nil, currentDay, currentDay.Add(time.Hour * 24))
+		f := types.NewFilter(nil, nil, nil, currentDay, currentDay.Add(time.Hour*24))
 		statistic, err := getTimeStatisticsForTimers(timers.Filter(f), byProject, byTask)
 		if err != nil {
 			return nil, err
@@ -52,7 +52,7 @@ func getTimeStatisticsForTimers(timers types.Timers, byProject, byTask bool) (st
 	if err != nil {
 		return types.Statistic{}, err
 	}
-	statistic.Difference =  statistic.Worked - statistic.Planned
+	statistic.Difference = statistic.Worked - statistic.Planned
 	statistic.Percentage = float64(statistic.Worked) / float64(statistic.Planned)
 	if math.IsNaN(statistic.Percentage) || math.IsInf(statistic.Percentage, 0) {
 		statistic.Percentage = 0
@@ -154,7 +154,7 @@ func plannedTime(timers types.Timers) (time.Duration, error) {
 
 	// we want to get all dates before tomorrow
 	var d time.Duration
-	end = time.Date(end.Year(), end.Month(), end.Day() + 1, 0, 0, 0, 0, time.Local)
+	end = time.Date(end.Year(), end.Month(), end.Day()+1, 0, 0, 0, 0, time.Local)
 	c := config.Get()
 
 	// once for every day add the hours that would have been worked on that day

@@ -10,7 +10,7 @@ import (
 )
 
 var breakCmd = &cobra.Command{
-	Use: "break",
+	Use:   "break",
 	Short: "Start or end a break",
 	Long: `This command allows you to take a break from your current activity without
 having to manually start and stop the timer. The first time you call break

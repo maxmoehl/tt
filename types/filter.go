@@ -13,6 +13,7 @@ const (
 	filterTask    = "task"
 	filterSince   = "since"
 	filterUntil   = "until"
+	filterTags    = "tags"
 
 	filtersSeparator = ";"
 	valuesSeparator  = ","
@@ -45,6 +46,9 @@ type filter struct {
 	//	 yyyy-MM-dd
 	// Until filter can be set with the keyword 'until'.
 	Until time.Time
+	// Tags contains all tags that should be included. They are parsed as a
+	// comma separated list and can be set with the keyword 'tags'.
+	Tags []string
 }
 
 func (f filter) Match(t Timer) bool {
@@ -58,6 +62,9 @@ func (f filter) Match(t Timer) bool {
 		return false
 	}
 	if !f.Until.IsZero() && (t.Start.After(f.Until) || t.End.After(f.Until)) {
+		return false
+	}
+	if f.Tags != nil && !stringSliceContainsAny(f.Tags, t.Tags) {
 		return false
 	}
 	return true
@@ -77,7 +84,7 @@ func (f filter) Filter(timers Timers) (filtered Timers) {
 //
 //   filterName=values;filterName=values;...
 //
-// each filterName consists only of strings. values contains the filter
+// each filterName consists of a string, values contains the filter
 // value. Some filters only accept a single value, others accept multiple
 // values separated by commas.
 //
@@ -90,6 +97,7 @@ func (f filter) Filter(timers Timers) (filtered Timers) {
 //   task   : accepts multiple string values
 //   since  : accepts a single string int the format of yyyy-MM-dd
 //   until  : accepts a single string int the format of yyyy-MM-dd
+//   tags   : accepts multiple string values
 //
 // since and until are inclusive, both dates will be included in filtered
 // data.
@@ -143,6 +151,22 @@ func parseValuesInto(key, values string, f *filter) (err error) {
 			err = fmt.Errorf("redeclared filter until")
 		}
 		f.Until, err = time.Parse(dateFormat, values)
+	case filterTags:
+		if f.Tags != nil {
+			err = fmt.Errorf("redeclared filter tags")
+		}
+		f.Tags = strings.Split(values, valuesSeparator)
 	}
 	return
+}
+
+// stringSliceContainsAny checks if any of the valid values is inside the
+// searchable list.
+func stringSliceContainsAny(validValues, searchable []string) bool {
+	for _, v := range validValues {
+		if utils.StringSliceContains(searchable, v) {
+			return true
+		}
+	}
+	return false
 }

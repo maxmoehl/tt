@@ -8,7 +8,7 @@ import (
 	"github.com/maxmoehl/tt/types"
 )
 
-func StartTimer(project, task, timestamp string) error {
+func StartTimer(project, task, timestamp string, tags []string) error {
 	if running, err := s.RunningTimerExists(); err != nil {
 		return err
 	} else if running {
@@ -37,6 +37,7 @@ func StartTimer(project, task, timestamp string) error {
 		End:     time.Time{},
 		Project: project,
 		Task:    task,
+		Tags:    tags,
 		Breaks:  nil,
 	})
 }

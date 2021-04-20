@@ -46,6 +46,7 @@ type Timer struct {
 	End     time.Time `json:"end"`
 	Project string    `json:"project"`
 	Task    string    `json:"task,omitempty"`
+	Tags    []string  `json:"tags,omitempty"`
 	Breaks  Breaks    `json:"breaks,omitempty"`
 }
 

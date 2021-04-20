@@ -30,6 +30,7 @@ var rootCmd = &cobra.Command{
 the application might fail and statistics or analytics may be wrong.
 
 Note: This cli is NOT concurrency safe.`,
+	Version: "0.1.1",
 }
 
 func init() {

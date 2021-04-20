@@ -1,5 +1,7 @@
 # tt
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/maxmoehl/tt)](https://goreportcard.com/report/github.com/maxmoehl/tt)
+
 `tt` is a cli application that can be used to track time. This README will be expanded
 when I have more time.
 

@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Maximilian Moehl contact@moehl.eu
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package types
 
 import (
@@ -19,6 +35,7 @@ const (
 	valuesSeparator  = ","
 )
 
+// Filter is a interface for types that can be used to filter Timers.
 type Filter interface {
 	Match(Timer) bool
 	Filter(Timers) Timers
@@ -49,6 +66,7 @@ type filter struct {
 	Tags []string
 }
 
+// Match checks if a given Timer matches this filter.
 func (f filter) Match(t Timer) bool {
 	if f.Project != nil && !utils.StringSliceContains(f.Project, t.Project) {
 		return false
@@ -68,6 +86,8 @@ func (f filter) Match(t Timer) bool {
 	return true
 }
 
+// Filter takes a list of Timers and returns a new list only containing
+// timers that match the filter.
 func (f filter) Filter(timers Timers) (filtered Timers) {
 	for _, t := range timers {
 		if f.Match(t) {
@@ -122,6 +142,8 @@ func GetFilter(filterString string) (Filter, error) {
 	return F, nil
 }
 
+// NewFilter allows to create a filter that is not parsed from a filter
+// string.
 func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 	return filter{
 		Project: projects,

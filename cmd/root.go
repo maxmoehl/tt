@@ -42,6 +42,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP(flagSilent, string(flagSilent[0]), false, "Suppress all output")
 }
 
+// Execute is the main entry point for the cli.
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }

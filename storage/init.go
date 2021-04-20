@@ -5,7 +5,7 @@ import (
 	"github.com/maxmoehl/tt/types"
 )
 
-var s types.Interface
+var s types.Storage
 
 func init() {
 	var err error

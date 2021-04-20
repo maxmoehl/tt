@@ -7,6 +7,8 @@ import (
 	"github.com/maxmoehl/tt/utils"
 )
 
+// Statistic holds all values that are generated as part of the stats
+// command.
 type Statistic struct {
 	Worked     time.Duration `json:"worked"`
 	Planned    time.Duration `json:"planned"`
@@ -16,6 +18,8 @@ type Statistic struct {
 	ByProjects []Project     `json:"by_projects,omitempty"`
 }
 
+// Print prints the Statistic struct to the console indenting lower
+// levels with two spaceds.
 func (s Statistic) Print() {
 	f := utils.FormatDuration
 	fmt.Printf(
@@ -44,6 +48,7 @@ func (s Statistic) Print() {
 	}
 }
 
+// Project is a part of Statistic and contains data for the stat command
 type Project struct {
 	Name    string        `json:"name"`
 	Worked  time.Duration `json:"worked"`
@@ -51,6 +56,7 @@ type Project struct {
 	ByTasks []Task        `json:"by_tasks,omitempty"`
 }
 
+// Task is a part of Statistic and contains data for the stat command
 type Task struct {
 	Name   string        `json:"name"`
 	Worked time.Duration `json:"worked"`

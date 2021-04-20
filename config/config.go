@@ -12,6 +12,7 @@ import (
 
 var c Config
 
+// Config holds all available configuration values.
 type Config struct {
 	// WorkHours specifies the hours you want to work per day.
 	// Default: 8
@@ -31,6 +32,7 @@ type Config struct {
 	Precision string `yaml:"precision"`
 }
 
+// GetPrecision returns the precision as a duration.
 func (c Config) GetPrecision() time.Duration {
 	switch c.Precision {
 	case "h":
@@ -72,10 +74,13 @@ func init() {
 	}
 }
 
+// Get returns the current Config
 func Get() Config {
 	return c
 }
 
+// HomeDir returns the path to the directory that contains for storage
+// files and configuration files.
 func HomeDir() string {
 	ttHomeDir := os.Getenv("TT_HOME_DIR")
 	if ttHomeDir == "" {

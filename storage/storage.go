@@ -8,6 +8,9 @@ import (
 	"github.com/maxmoehl/tt/types"
 )
 
+// StartTimer starts a new timer, and validates that the passed in values.
+// If an error is returned no changes have been made, except if the error
+// is from writing to the file.
 func StartTimer(project, task, timestamp string, tags []string) error {
 	if running, err := s.RunningTimerExists(); err != nil {
 		return err
@@ -42,6 +45,9 @@ func StartTimer(project, task, timestamp string, tags []string) error {
 	})
 }
 
+// StopTimer stops a timer and validates the given timestamp (if any).
+// If an error is returned no changes have been made, except if the error
+// is from writing to the file.
 func StopTimer(timestamp string) error {
 	runningTimer, err := s.GetRunningTimer()
 	if err != nil {
@@ -99,6 +105,8 @@ func ToggleBreak() (bool, error) {
 	return breakOpenAfter, nil
 }
 
+// CheckRunningTimers returns the uuids of all timers that are currently
+// running.
 func CheckRunningTimers() ([]uuid.UUID, error) {
 	timers, err := s.GetTimers(nil)
 	if err != nil {
@@ -113,6 +121,10 @@ func CheckRunningTimers() ([]uuid.UUID, error) {
 	return uuids, nil
 }
 
+// CheckTimersOpenBreaks returns all uuids of timers that have invalid
+// breaks. Inconsistencies that are being checked:
+// - running timers with open breaks
+// - timers with more than one open break
 func CheckTimersOpenBreaks() ([]uuid.UUID, error) {
 	timers, err := s.GetTimers(nil)
 	if err != nil {
@@ -137,6 +149,8 @@ func CheckTimersOpenBreaks() ([]uuid.UUID, error) {
 	return uuids, nil
 }
 
+// GetRunningTimer returns the running timer and a bool indicating whether
+// one has been found or the returned timer is a empty value.
 func GetRunningTimer() (bool, types.Timer, error) {
 	exists, err := s.RunningTimerExists()
 	if err != nil {

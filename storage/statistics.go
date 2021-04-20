@@ -9,6 +9,9 @@ import (
 	"github.com/maxmoehl/tt/utils"
 )
 
+// GetTimeStatistics generates a types.Statistic struct for all timers
+// that match the filter. The data is grouped as defined by byTask and
+// byProject.
 func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic types.Statistic, err error) {
 	var timers types.Timers
 	timers, err = s.GetTimers(filter)
@@ -18,6 +21,8 @@ func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic t
 	return getTimeStatisticsForTimers(timers, byProject, byTask)
 }
 
+// GetTimeStatisticsByDay generates a similar report to GetTimeStatistics
+// but does the analysis on a daily basis.
 func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[string]types.Statistic, error) {
 	timers, err := s.GetTimers(filter)
 	if err != nil {

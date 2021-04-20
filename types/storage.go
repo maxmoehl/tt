@@ -4,7 +4,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type Interface interface {
+// Storage is the general storage interface that is used to abstract the
+// direct data access.
+type Storage interface {
 	GetTimer(uuid uuid.UUID) (Timer, error)
 	GetRunningTimer() (Timer, error)
 	GetTimers(filter Filter) (Timers, error)

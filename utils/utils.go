@@ -14,6 +14,7 @@ const (
 	DateFormat = "2006-01-02"
 )
 
+// PrintWarning prints msg in yellow.
 func PrintWarning(msg string) {
 	fmt.Println("\x1b[33mWarning: " + msg + "\x1b[0m")
 }
@@ -27,6 +28,8 @@ func PrintError(err error, silent bool) {
 	os.Exit(1)
 }
 
+// StringSliceContains checks if the given string is contained in the
+// given string slice.
 func StringSliceContains(strings []string, s string) bool {
 	for _, t := range strings {
 		if t == s {
@@ -36,6 +39,8 @@ func StringSliceContains(strings []string, s string) bool {
 	return false
 }
 
+// FormatDuration formats a duration in the precision defined by the
+// config.
 func FormatDuration(d time.Duration) string {
 	h := d / time.Hour
 	m := (d - (h * time.Hour)) / time.Minute

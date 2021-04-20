@@ -9,7 +9,9 @@ import (
 	"github.com/maxmoehl/tt/types"
 )
 
-func New() (types.Interface, error) {
+// New initializes and returns a new storage interface that can be used
+// to access data.
+func New() (types.Storage, error) {
 	var f file
 	if !storageFileExists() {
 		return &file{}, nil

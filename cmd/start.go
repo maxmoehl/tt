@@ -35,8 +35,10 @@ const (
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start project",
-	Short: "Starts tracking work",
-	Long: `With this command you can start time tracking and tag it with a project
+	Short: "Starts tracking time.",
+	Long: `Starts tracking time.
+
+With this command you can start time tracking and tag it with a project
 name and an optional specific task. The project name can be any
 alphanumerical identifier, including dashes and underscores. A project
 name is required, specifying a task is optional. Tags are also optional

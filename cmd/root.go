@@ -26,7 +26,12 @@ const flagSilent = "silent"
 var rootCmd = &cobra.Command{
 	Use:   "tt",
 	Short: "tt is a cli application that can be used to track time.",
-	Long: `The timers that track time cannot overlap. If there are overlapping timers
+	Long: `tt is a cli application that can be used to track time.
+
+See the help sections of the individual commands for more details on the
+functionality.
+
+Note: Timers cannot overlap. If there are overlapping timers
 the application might fail and statistics or analytics may be wrong.
 
 Note: This cli is NOT concurrency safe.`,

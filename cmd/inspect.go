@@ -28,7 +28,8 @@ import (
 var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "Inspects the data and looks for inconsistencies to report.",
-	Long: `If the output states any errors, the errors can be of two types: timer
+	Long: `Inspects the data and looks for inconsistencies to report.
+If the output states any errors, the errors can be of two types: timer
 related or break related.
 
 Timer related:

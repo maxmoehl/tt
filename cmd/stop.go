@@ -28,13 +28,15 @@ import (
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Aliases: []string{"end"},
-	Short: "Ends a segment.",
-	Long: `This command ends the current timer. If the timer is currently in a break
+	Short: "Stops a timer.",
+	Long: `This command stops the current timer. If the timer is currently in a break
 the break is also ended without further notice.
 
 If you want to manually set a stop time it has to be in the following
 format:
+
   2020-04-19T08:00:00+02:00
+
 Otherwise an appropriate error will be printed. The cli will check if the
 given stop time is valid, e.g. if the last timer and break that were
 started, started before the given stop.`,

@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	flagJSON      = "json"
-	flagGroupBy   = "group-by"
-	flagFilter    = "filter"
+	flagJSON    = "json"
+	flagGroupBy = "group-by"
+	flagFilter  = "filter"
 
 	groupByProject = "project"
 	groupByTask    = "task"
@@ -42,8 +42,10 @@ const (
 
 var statsCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "Displays various statistics",
-	Long: `This command displays various statistics. The following statistics are
+	Short: "Displays various statistics.",
+	Long: `Displays various statistics.
+
+This command displays various statistics. The following statistics are
 currently available:
 
   worked    : total time worked (excluding brakes)
@@ -56,7 +58,7 @@ The filter string has to be in the following format:
 
   filterName=values;filterName=values;...
 
-each filterName consists of a string, values contains the filter value.
+Each filterName consists of a string, values contains the filter value.
 Some filters only accept a single value, others accept multiple values
 separated by commas.
 
@@ -88,9 +90,9 @@ Invalid values are ignored.`,
 
 func init() {
 	rootCmd.AddCommand(statsCmd)
-	statsCmd.Flags().Bool(flagJSON, false, "Enables printing in the json format, any arguments are ignored.")
-	statsCmd.Flags().String(flagGroupBy, "", "Group output by certain aspects: project task day")
-	statsCmd.Flags().String(flagFilter, "", "Filter the data before generating statistics")
+	statsCmd.Flags().BoolP(flagJSON, string(flagJSON[0]), false, "Enables printing in the json format, any arguments are ignored.")
+	statsCmd.Flags().StringP(flagGroupBy, string(flagGroupBy[0]), "", "Group output by certain aspects: project task day")
+	statsCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "Filter the data before generating statistics")
 }
 
 func stats(cmd *cobra.Command, args []string) {
@@ -99,9 +101,6 @@ func stats(cmd *cobra.Command, args []string) {
 		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
 	}
 	byProject, byTask, byDay := getGroupByFields(groupBy)
-	if byTask && !byProject {
-		utils.PrintError(fmt.Errorf("grouping by task requires grouping by project"), silent)
-	}
 	// the only thing we do is provide output, so there is no point in doing anything if
 	// no output should be given
 	if silent {
@@ -182,6 +181,7 @@ func getGroupByFields(s string) (byProject, byTask, byDay bool) {
 		case groupByProject:
 			byProject = true
 		case groupByTask:
+			byProject = true
 			byTask = true
 		case groupByDay:
 			byDay = true

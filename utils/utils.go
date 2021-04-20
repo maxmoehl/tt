@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/maxmoehl/tt/config"
 )
 
@@ -33,14 +34,14 @@ const (
 
 // PrintWarning prints msg in yellow.
 func PrintWarning(msg string) {
-	fmt.Println("\x1b[33mWarning: " + msg + "\x1b[0m")
+	color.Yellow("Warning: %s", msg)
 }
 
 // PrintError takes an error and prints the value of error.Error() in red to the
 // console, and exits with os.Exit(1)
 func PrintError(err error, silent bool) {
 	if !silent {
-		fmt.Println("\x1b[31mError: " + err.Error() + "\x1b[0m")
+		color.Red("Error: %s", err.Error())
 	}
 	os.Exit(1)
 }

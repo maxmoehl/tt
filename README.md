@@ -13,8 +13,20 @@ more details.
 
 # Installation
 
+We are currently lacking automated tests therefore install this application is at your
+own risk. To get the most recent version (that is somewhat manually tested) set a valid
+version instead of `latest`, i.e. `v0.1.1`.
+
 ```
-go install github.com/maxmoehl/tt@latest
+$ go install github.com/maxmoehl/tt@latest
+```
+
+If you already installed a version, you can check with the --version flag which version
+you have installed.
+
+```
+$ tt --version
+tt version v0.1.1
 ```
 
 # Usage

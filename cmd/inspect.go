@@ -29,20 +29,10 @@ var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "Inspects the data and looks for inconsistencies to report.",
 	Long: `Inspects the data and looks for inconsistencies to report.
-If the output states any errors, the errors can be of two types: timer
-related or break related.
 
-Timer related:
-  If any timers are printed and the command reports an error, this means
-  that there is more than one running timer. Please try to remove the
-  timer form the data source or finish it by setting a valid end time.
-
-Break related:
-  If any timers are printed because of open breaks that means that either
-  the timer is already stopped but still has a open break or the timer is
-  still running but also has more than one open break. In both cases
-  remove the incorrect breaks from the printed timers or add a valid end
-  time.`,
+If any timers are printed and the command reports an error, this means
+that there is more than one running timer. Please try to remove the
+timer form the data source or finish it by setting a valid end time.`,
 	Run: inspect,
 }
 
@@ -59,7 +49,6 @@ func inspect(cmd *cobra.Command, args []string) {
 		return
 	}
 	// TODO: add check if there are running timers that are older than the most recent timer
-	// TODO: add check if there are timers where the break exceeds the timer range
 	fmt.Println("checking for running timers...")
 	timerUuids, err := storage.CheckRunningTimers()
 	if err != nil {
@@ -74,21 +63,6 @@ func inspect(cmd *cobra.Command, args []string) {
 		fmt.Println("ok")
 	} else {
 		fmt.Println("found more then one running timer:")
-		for _, u := range timerUuids {
-			fmt.Printf("\t%s\n", u.String())
-		}
-		fmt.Println("ERROR")
-	}
-	fmt.Println("checking for invalid breaks...")
-	timerUuids, err = storage.CheckTimersOpenBreaks()
-	if err != nil {
-		utils.PrintError(err, silent)
-	}
-	if len(timerUuids) == 0 {
-		fmt.Println("found no timers with invalid breaks")
-		fmt.Println("ok")
-	} else {
-		fmt.Println("found timers with invalid breaks:")
 		for _, u := range timerUuids {
 			fmt.Printf("\t%s\n", u.String())
 		}

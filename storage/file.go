@@ -49,6 +49,10 @@ func (f *file) GetRunningTimer() (types.Timer, error) {
 	return types.Timer{}, fmt.Errorf("no running timer found")
 }
 
+func (f *file) GetLastTimer(running bool) (types.Timer, error) {
+	return f.timers.Last(running), nil
+}
+
 func (f *file) GetTimers(filter types.Filter) (types.Timers, error) {
 	return f.timers.Filter(filter), nil
 }
@@ -84,7 +88,6 @@ func (f *file) UpdateTimer(updatedTimer types.Timer) error {
 			f.timers[i].Task = updatedTimer.Task
 			f.timers[i].Start = updatedTimer.Start
 			f.timers[i].End = updatedTimer.End
-			f.timers[i].Breaks = updatedTimer.Breaks
 			break
 		}
 	}

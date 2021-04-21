@@ -33,31 +33,16 @@ func StartTimer(project, task, timestamp string, tags []string) error {
 	} else if running {
 		return fmt.Errorf("running timer found, cannot create a new one")
 	}
-	var start time.Time
-	if timestamp == "" {
-		start = time.Now()
-	} else {
-		var err error
-		start, err = time.Parse(time.RFC3339, timestamp)
-		if err != nil {
-			return err
-		}
-		validStartTime, err := isValidStartTime(start)
-		if err != nil {
-			return err
-		}
-		if !validStartTime {
-			return fmt.Errorf("the given start time is not valid, collision with other timer")
-		}
+	start, err := getStartTime(timestamp)
+	if err != nil {
+		return err
 	}
 	return s.StoreTimer(types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   start,
-		End:     time.Time{},
 		Project: project,
 		Task:    task,
 		Tags:    tags,
-		Breaks:  nil,
 	})
 }
 
@@ -69,7 +54,6 @@ func StopTimer(timestamp string) error {
 	if err != nil {
 		return err
 	}
-	openBreak, breakIdx := runningTimer.Breaks.Open()
 	var stop time.Time
 	if timestamp == "" {
 		stop = time.Now()
@@ -79,15 +63,9 @@ func StopTimer(timestamp string) error {
 		if err != nil {
 			return err
 		}
-		if !openBreak && len(runningTimer.Breaks) > 0 {
-			breakIdx = getMostRecentBreak(runningTimer.Breaks)
+		if runningTimer.Start.After(stop) {
+			return fmt.Errorf("the given stop time is before the start time of this timer")
 		}
-		if !isValidStopTime(runningTimer, breakIdx, stop) {
-			return fmt.Errorf("the given stop time is not valid for this timer")
-		}
-	}
-	if openBreak {
-		runningTimer.Breaks[breakIdx].End = stop
 	}
 	runningTimer.End = stop
 	return s.UpdateTimer(runningTimer)
@@ -119,34 +97,6 @@ func ResumeTimer() (types.Timer, error) {
 	return t, s.StoreTimer(t)
 }
 
-// ToggleBreak starts a new break if no break is open or ends and open
-// break. If there is no running timer, an error is returned. The
-// returned bool indicates whether a break is running or not after
-// the toggle has been executed.
-func ToggleBreak() (bool, error) {
-	runningTimer, err := s.GetRunningTimer()
-	if err != nil {
-		return false, err
-	}
-	openBreak, breakIdx := runningTimer.Breaks.Open()
-	var breakOpenAfter bool
-	if openBreak {
-		runningTimer.Breaks[breakIdx].End = time.Now()
-		breakOpenAfter = false
-		err = s.UpdateTimer(runningTimer)
-	} else {
-		runningTimer.Breaks = append(runningTimer.Breaks, types.Break{
-			Start: time.Now(),
-		})
-		breakOpenAfter = true
-		err = s.UpdateTimer(runningTimer)
-	}
-	if err != nil {
-		return !breakOpenAfter, err
-	}
-	return breakOpenAfter, nil
-}
-
 // CheckRunningTimers returns the uuids of all timers that are currently
 // running.
 func CheckRunningTimers() ([]uuid.UUID, error) {
@@ -157,34 +107,6 @@ func CheckRunningTimers() ([]uuid.UUID, error) {
 	var uuids []uuid.UUID
 	for _, t := range timers {
 		if t.Running() {
-			uuids = append(uuids, t.Uuid)
-		}
-	}
-	return uuids, nil
-}
-
-// CheckTimersOpenBreaks returns all uuids of timers that have invalid
-// breaks. Inconsistencies that are being checked:
-// - running timers with open breaks
-// - timers with more than one open break
-func CheckTimersOpenBreaks() ([]uuid.UUID, error) {
-	timers, err := s.GetTimers(nil)
-	if err != nil {
-		return nil, err
-	}
-	var uuids []uuid.UUID
-	for _, t := range timers {
-		if t.Running() {
-			openBreaks := 0
-			for _, b := range t.Breaks {
-				if b.Open() {
-					openBreaks++
-				}
-			}
-			if openBreaks > 1 {
-				uuids = append(uuids, t.Uuid)
-			}
-		} else if openBreaks, _ := t.Breaks.Open(); openBreaks {
 			uuids = append(uuids, t.Uuid)
 		}
 	}
@@ -208,56 +130,20 @@ func GetRunningTimer() (bool, types.Timer, error) {
 	return exists, t, nil
 }
 
-// isValidStartTime checks if there are other timers that are more recent
-// than the time passed in.
-func isValidStartTime(t time.Time) (bool, error) {
-	if t.IsZero() {
-		return false, nil
+func getStartTime(timestamp string) (time.Time, error) {
+	if timestamp == "" {
+		return time.Now(), nil
 	}
-	timer, err := getMostRecentTimer()
+	start, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
-		return false, err
+		return time.Time{}, err
 	}
-	if timer.IsZero() {
-		return true, nil
-	}
-	return t.After(timer.End), nil
-}
-
-// isValidStopTime checks if the given timer and break started before the
-// timestamp. If breakIdx is -1, it is ignored.
-func isValidStopTime(timer types.Timer, breakIdx int, time time.Time) bool {
-	// if there is some sort of break passed in, check if that break started before
-	// the given time
-	if breakIdx != -1 {
-		b := timer.Breaks[breakIdx]
-		return timer.Start.Before(time) && b.Start.Before(time)
-	}
-	return timer.Start.Before(time)
-}
-
-// getMostRecentTimer returns the most recent timer. If no timer is found
-// an empty timer is returned which can be identified by IsZero()
-func getMostRecentTimer() (types.Timer, error) {
-	timers, err := s.GetTimers(nil)
+	lastTimer, err := s.GetLastTimer(false)
 	if err != nil {
-		return types.Timer{}, err
+		return time.Time{}, err
 	}
-	mostRecent := types.Timer{}
-	for _, t := range timers {
-		if t.Start.After(mostRecent.Start) {
-			mostRecent = t
-		}
+	if lastTimer.End.After(start) {
+		return time.Time{}, fmt.Errorf("invalid start time, collision with existing timer")
 	}
-	return mostRecent, nil
-}
-
-func getMostRecentBreak(breaks types.Breaks) int {
-	mostRecent := 0
-	for i, b := range breaks {
-		if b.Start.After(breaks[mostRecent].Start) {
-			mostRecent = i
-		}
-	}
-	return mostRecent
+	return start, nil
 }

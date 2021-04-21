@@ -67,8 +67,12 @@ func start(cmd *cobra.Command, args []string) {
 		utils.PrintError(fmt.Errorf("this command needs exactly one argument"), silent)
 	}
 	project := args[0]
-	silent, task, timestamp, tags := getStartFlags(cmd)
-	err := storage.StartTimer(project, task, timestamp, strings.Split(tags, ","))
+	silent, task, timestamp, tagsString := getStartFlags(cmd)
+	var tags []string
+	if tagsString != "" {
+		tags = strings.Split(tagsString, ",")
+	}
+	err := storage.StartTimer(project, task, timestamp, tags)
 	if err != nil {
 		utils.PrintError(err, silent)
 	}

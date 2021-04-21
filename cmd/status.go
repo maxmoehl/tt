@@ -52,18 +52,10 @@ func status(cmd *cobra.Command, args []string) {
 	if !found {
 		fmt.Println("Currently not working. Enjoy your free time :)")
 	} else {
-		if openBreak, _ := timer.Breaks.Open(); openBreak {
-			if timer.Task != "" {
-				fmt.Printf("Currently taking a break from project %s with task %s.\n", timer.Project, timer.Task)
-			} else {
-				fmt.Printf("Currently taking a break from project %s.\n", timer.Project)
-			}
+		if timer.Task != "" {
+			fmt.Printf("Currently timing project %s with task %s, your doing good!\n", timer.Project, timer.Task)
 		} else {
-			if timer.Task != "" {
-				fmt.Printf("Currently timing project %s with task %s, your doing good!\n", timer.Project, timer.Task)
-			} else {
-				fmt.Printf("Currently timing project %s, your doing good!\n", timer.Project)
-			}
+			fmt.Printf("Currently timing project %s, your doing good!\n", timer.Project)
 		}
 	}
 }

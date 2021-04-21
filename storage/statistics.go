@@ -68,7 +68,6 @@ func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[st
 
 func getTimeStatisticsForTimers(timers types.Timers, byProject, byTask bool) (statistic types.Statistic, err error) {
 	statistic.Worked = workTime(timers)
-	statistic.Breaks = breakTime(timers)
 	statistic.Planned, err = plannedTime(timers)
 	if err != nil {
 		return types.Statistic{}, err
@@ -90,7 +89,6 @@ func getTimeByProjects(timers types.Timers, byTasks bool) (projects []types.Proj
 		p := types.Project{
 			Name:   name,
 			Worked: workTime(timers),
-			Breaks: breakTime(timers),
 		}
 		if byTasks {
 			p.ByTasks = getTimeByTasks(timers)
@@ -106,7 +104,6 @@ func getTimeByTasks(timers types.Timers) (tasks []types.Task) {
 		tasks = append(tasks, types.Task{
 			Name:   name,
 			Worked: workTime(timers),
-			Breaks: breakTime(timers),
 		})
 	}
 	return
@@ -142,13 +139,6 @@ func workTime(timers types.Timers) (d time.Duration) {
 			continue
 		}
 		d += t.Duration()
-	}
-	return
-}
-
-func breakTime(timers types.Timers) (d time.Duration) {
-	for _, t := range timers {
-		d += t.Breaks.Duration()
 	}
 	return
 }

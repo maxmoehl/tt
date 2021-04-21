@@ -25,6 +25,7 @@ import (
 type Storage interface {
 	GetTimer(uuid uuid.UUID) (Timer, error)
 	GetRunningTimer() (Timer, error)
+	GetLastTimer(running bool) (Timer, error)
 	GetTimers(filter Filter) (Timers, error)
 	RunningTimerExists() (bool, error)
 	StoreTimer(timer Timer) error

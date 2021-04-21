@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package file
+package storage
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/google/uuid"
+	"github.com/maxmoehl/tt/config"
 	"github.com/maxmoehl/tt/types"
 )
 
@@ -95,4 +97,34 @@ func (f *file) write() error {
 		return err
 	}
 	return json.NewEncoder(fileWriter).Encode(f.timers)
+}
+
+// NewFile initializes and returns a new storage interface that can be used
+// to access data.
+func NewFile() (types.Storage, error) {
+	var f file
+	if !storageFileExists() {
+		return &file{}, nil
+	}
+	fileReader, err := os.Open(getStorageFile())
+	if err != nil {
+		return nil, err
+	}
+	err = json.NewDecoder(fileReader).Decode(&f.timers)
+	if err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+func getStorageFile() string {
+	return filepath.Join(config.HomeDir(), "storage.json")
+}
+
+func storageFileExists() bool {
+	_, err := os.Stat(getStorageFile())
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

@@ -93,6 +93,32 @@ func StopTimer(timestamp string) error {
 	return s.UpdateTimer(runningTimer)
 }
 
+func ResumeTimer() (types.Timer, error) {
+	exists, err := s.RunningTimerExists()
+	if err != nil {
+		return types.Timer{}, err
+	}
+	if exists {
+		return types.Timer{}, fmt.Errorf("found running timer, cannot resume")
+	}
+	timers, err := s.GetTimers(nil)
+	if err != nil {
+		return types.Timer{}, err
+	}
+	t := timers.Last(false)
+	if t.IsZero() {
+		return types.Timer{}, fmt.Errorf("no timer found, cannot resume")
+	}
+	t = types.Timer{
+		Uuid:    uuid.Must(uuid.NewRandom()),
+		Start:   time.Now(),
+		Project: t.Project,
+		Task:    t.Task,
+		Tags:    t.Tags,
+	}
+	return t, s.StoreTimer(t)
+}
+
 // ToggleBreak starts a new break if no break is open or ends and open
 // break. If there is no running timer, an error is returned. The
 // returned bool indicates whether a break is running or not after

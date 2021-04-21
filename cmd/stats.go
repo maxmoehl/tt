@@ -48,9 +48,8 @@ var statsCmd = &cobra.Command{
 This command displays various statistics. The following statistics are
 currently available:
 
-  worked    : total time worked (excluding brakes)
+  worked    : total time worked
   planned   : planned work time as specified by the config
-  breaks    : total time that has been spent in breaks
   percentage: percentage of planned time fulfilled
   difference: absolute difference between planned and worked
 

@@ -116,18 +116,26 @@ func stats(cmd *cobra.Command, args []string) {
 			utils.PrintError(err, silent)
 		}
 		printStatsStatistics(statistics, j)
+		if !j {
+			statistic, err := storage.GetTimeStatistics(false, false, filter)
+			if err != nil {
+				utils.PrintError(err, silent)
+			}
+			fmt.Println("Summary:")
+			statistic.Print()
+		}
 	} else {
-		s, err := storage.GetTimeStatistics(byProject, byTask, filter)
+		statistic, err := storage.GetTimeStatistics(byProject, byTask, filter)
 		if err != nil {
 			utils.PrintError(err, silent)
 		}
 		if j {
-			err = json.NewEncoder(os.Stdout).Encode(s)
+			err = json.NewEncoder(os.Stdout).Encode(statistic)
 			if err != nil {
 				utils.PrintError(err, false)
 			}
 		} else {
-			s.Print()
+			statistic.Print()
 		}
 	}
 }

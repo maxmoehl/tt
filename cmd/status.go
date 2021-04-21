@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/maxmoehl/tt/storage"
 	"github.com/maxmoehl/tt/utils"
@@ -52,10 +53,11 @@ func status(cmd *cobra.Command, args []string) {
 	if !found {
 		fmt.Println("Currently not working. Enjoy your free time :)")
 	} else {
+		timingFor := time.Now().Sub(timer.Start).Round(time.Second).String()
 		if timer.Task != "" {
-			fmt.Printf("Currently timing project %s with task %s, your doing good!\n", timer.Project, timer.Task)
+			fmt.Printf("Currently timing project %s with task %s for %s, your doing good!\n", timer.Project, timer.Task, timingFor)
 		} else {
-			fmt.Printf("Currently timing project %s, your doing good!\n", timer.Project)
+			fmt.Printf("Currently timing project %s for %s, your doing good!\n", timer.Project, timingFor)
 		}
 	}
 }

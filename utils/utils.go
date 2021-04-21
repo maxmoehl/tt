@@ -21,8 +21,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/maxmoehl/tt/config"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -32,16 +33,21 @@ const (
 	DateFormat = "2006-01-02"
 )
 
-// PrintWarning prints msg in yellow.
+var (
+	red    = color.New(color.FgRed).FprintlnFunc()
+	yellow = color.New(color.FgYellow).FprintlnFunc()
+)
+
+// PrintWarning prints msg in yellow to stderr.
 func PrintWarning(msg string) {
-	color.Yellow("Warning: %s", msg)
+	yellow(os.Stderr, "Warning:", msg)
 }
 
-// PrintError takes an error and prints the value of error.Error() in red to the
-// console, and exits with os.Exit(1)
+// PrintError takes an error and prints the value of error.Error() in red to
+// stderr, and exits with os.Exit(1)
 func PrintError(err error, silent bool) {
 	if !silent {
-		color.Red("Error: %s", err.Error())
+		red(os.Stderr, "Error:", err.Error())
 	}
 	os.Exit(1)
 }

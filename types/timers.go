@@ -17,6 +17,8 @@ limitations under the License.
 package types
 
 import (
+	"encoding/csv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -99,4 +101,25 @@ func (timers Timers) Filter(f Filter) (filtered Timers) {
 		}
 	}
 	return
+}
+
+func (timers Timers) CSV() (string, error) {
+	b := strings.Builder{}
+	w := csv.NewWriter(&b)
+	err := w.Write([]string{"uuid", "start", "end", "project", "task", "tags"})
+	if err != nil {
+		return "", err
+	}
+	for _, t := range timers {
+		err = w.Write([]string{t.Uuid.String(), t.Start.String(), t.End.String(), t.Project, t.Task, strings.Join(t.Tags, ", ")})
+		if err != nil {
+			return "", err
+		}
+	}
+	w.Flush()
+	err = w.Error()
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }

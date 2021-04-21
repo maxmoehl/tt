@@ -121,7 +121,7 @@ func stats(cmd *cobra.Command, args []string) {
 				utils.PrintError(err, silent)
 			}
 			fmt.Println("Summary:")
-			statistic.Print()
+			statistic.Print("  ")
 		}
 	} else {
 		statistic, err := storage.GetTimeStatistics(byProject, byTask, filter)
@@ -134,7 +134,7 @@ func stats(cmd *cobra.Command, args []string) {
 				utils.PrintError(err, false)
 			}
 		} else {
-			statistic.Print()
+			statistic.Print("")
 		}
 	}
 }
@@ -158,7 +158,7 @@ func printStatsStatistics(statistics map[string]types.Statistic, j bool) {
 
 	for _, date := range dates {
 		fmt.Println(date)
-		statistics[date].Print()
+		statistics[date].Print("  ")
 		fmt.Println("----------")
 	}
 }

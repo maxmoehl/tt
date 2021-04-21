@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/maxmoehl/tt/types"
+
+	"github.com/google/uuid"
 )
 
 // StartTimer starts a new timer, and validates that the passed in values.

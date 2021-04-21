@@ -22,9 +22,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/uuid"
 	"github.com/maxmoehl/tt/config"
 	"github.com/maxmoehl/tt/types"
+
+	"github.com/google/uuid"
 )
 
 type file struct {
@@ -107,7 +108,7 @@ func (f *file) write() error {
 func NewFile() (types.Storage, error) {
 	var f file
 	if !storageFileExists() {
-		return &file{}, nil
+		return &f, nil
 	}
 	fileReader, err := os.Open(getStorageFile())
 	if err != nil {

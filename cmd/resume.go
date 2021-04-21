@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/maxmoehl/tt/storage"
 	"github.com/maxmoehl/tt/utils"
@@ -46,7 +47,14 @@ func resume(cmd *cobra.Command, args []string) {
 	if err != nil {
 		utils.PrintError(err, silent)
 	}
-	fmt.Println("Timer resumed, lets go!")
-	fmt.Printf("\tproject: %s\n", t.Project)
-	fmt.Printf("\ttask   : %s\n", t.Task)
+	if !silent {
+		fmt.Println("Work tracking started!")
+		fmt.Printf("  project: %s\n", t.Project)
+		if t.Task != "" {
+			fmt.Printf("  task   : %s\n", t.Task)
+		}
+		if len(t.Tags) > 0 {
+			fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ", "))
+		}
+	}
 }

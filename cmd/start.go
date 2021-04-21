@@ -78,9 +78,12 @@ func start(cmd *cobra.Command, args []string) {
 	}
 	if !silent {
 		fmt.Println("Work tracking started!")
-		fmt.Printf("\tproject: %s\n", project)
+		fmt.Printf("  project: %s\n", project)
 		if task != "" {
-			fmt.Printf("\ttask   : %s\n", task)
+			fmt.Printf("  task   : %s\n", task)
+		}
+		if len(tags) > 0 {
+			fmt.Printf("  tags   : %s\n", strings.Join(tags, ", "))
 		}
 	}
 }

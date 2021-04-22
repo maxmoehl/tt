@@ -1,18 +1,15 @@
 package storage
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
-)
 
-var testFile *file
+	"github.com/google/uuid"
+)
 
 func TestMain(m *testing.M) {
 	dir := setup()
@@ -29,20 +26,6 @@ func TestMain(m *testing.M) {
 		teardown(dir)
 		os.Exit(exitCode)
 	}
-}
-
-func reloadTestFile() error {
-	var err error
-	s, err = NewFile()
-	if err != nil {
-		return err
-	}
-	var ok bool
-	testFile, ok = s.(*file)
-	if !ok {
-		return fmt.Errorf("expected storage to be of type *file")
-	}
-	return nil
 }
 
 func TestNewFile(t *testing.T) {
@@ -332,31 +315,4 @@ func TestFileWritesStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-}
-
-func timersEqual(t1, t2 types.Timer) error {
-	if t1.Uuid != t2.Uuid {
-		return fmt.Errorf("uuids are not equal")
-	}
-	if t1.Project != t2.Project {
-		return fmt.Errorf("projects are not equal")
-	}
-	if t1.Task != t2.Task {
-		return fmt.Errorf("tasks are not equal")
-	}
-	if len(t1.Tags) != len(t2.Tags) {
-		return fmt.Errorf("tags are not equal")
-	}
-	for _, tag := range t1.Tags {
-		if !utils.StringSliceContains(t2.Tags, tag) {
-			return fmt.Errorf("tags are not equal")
-		}
-	}
-	if !t1.Start.Equal(t2.Start) {
-		return fmt.Errorf("start time is not equal")
-	}
-	if !t1.End.Equal(t2.End) {
-		return fmt.Errorf("end time is not equal")
-	}
-	return nil
 }

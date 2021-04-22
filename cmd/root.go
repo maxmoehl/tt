@@ -35,7 +35,7 @@ Note: Timers cannot overlap. If there are overlapping timers
 the application might fail and statistics or analytics may be wrong.
 
 Note: This cli is NOT concurrency safe.`,
-	Version: "v0.2.1",
+	Version: "v0.2.2",
 }
 
 func init() {

@@ -23,10 +23,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/maxmoehl/tt/utils"
 	"gopkg.in/yaml.v2"
 )
 
 const (
+	HomeDirEnv = "TT_HOME_DIR"
+
 	StorageTypeFile = "file"
 	StorageTypeSQLite = "sqlite"
 )
@@ -77,24 +80,9 @@ func (c Config) GetPrecision() time.Duration {
 }
 
 func init() {
-	ttHomeDir := HomeDir()
-	file, err := os.Open(filepath.Join(ttHomeDir, "config.yaml"))
+	err := LoadConfig()
 	if err != nil {
-		// If the occurred error is related to the file not existing we set the defaults
-		// by calling validate and return.
-		if errors.Is(err, os.ErrNotExist) {
-			_ = validate()
-			return
-		}
-		panic(err.Error())
-	}
-	err = yaml.NewDecoder(file).Decode(&c)
-	if err != nil {
-		panic(err.Error())
-	}
-	err = validate()
-	if err != nil {
-		panic(err.Error())
+		utils.PrintError(err, false)
 	}
 }
 
@@ -106,11 +94,30 @@ func Get() Config {
 // HomeDir returns the path to the directory that contains for storage
 // files and configuration files.
 func HomeDir() string {
-	ttHomeDir := os.Getenv("TT_HOME_DIR")
+	ttHomeDir := os.Getenv(HomeDirEnv)
 	if ttHomeDir == "" {
 		ttHomeDir = filepath.Join(os.Getenv("HOME"), ".tt")
 	}
 	return ttHomeDir
+}
+
+// LoadConfig allows to manually reload the configuration file.
+func LoadConfig() error {
+	ttHomeDir := HomeDir()
+	file, err := os.Open(filepath.Join(ttHomeDir, "config.yaml"))
+	if err != nil {
+		// If the occurred error is related to the file not existing we set the defaults
+		// by calling validate and return.
+		if errors.Is(err, os.ErrNotExist) {
+			return validate()
+		}
+		return err
+	}
+	err = yaml.NewDecoder(file).Decode(&c)
+	if err != nil {
+		return err
+	}
+	return validate()
 }
 
 // validate checks if the values are inside valid ranges and applies defaults if
@@ -119,7 +126,7 @@ func validate() error {
 	if c.WorkHours == 0 {
 		c.WorkHours = 8
 	} else if c.WorkHours < 0 || c.WorkHours > 24 {
-		return fmt.Errorf("workHours has be bigger than 0 and smaller than 25 but is %d", c.WorkHours)
+		return fmt.Errorf("workHours has to be bigger than 0 and smaller than 25 but is %d", c.WorkHours)
 	}
 	if c.StorageType != StorageTypeFile && c.StorageType != StorageTypeSQLite {
 		return fmt.Errorf("invalid storage type %s", c.StorageType)

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/maxmoehl/tt/config"
 	"github.com/maxmoehl/tt/utils"
 )
 
@@ -36,10 +37,11 @@ type Statistic struct {
 // Print prints the Statistic struct to the console indenting everything
 // by the given indent and lower levels by multiples of the given indent.
 func (s Statistic) Print(indent string) {
+	precision := config.Get().GetPrecision()
 	f := utils.FormatDuration
-	fmt.Printf("%sworked    : %s\n", indent, f(s.Worked))
-	fmt.Printf("%splanned   : %s\n", indent, f(s.Planned))
-	fmt.Printf("%sdifference: %s\n", indent, f(s.Difference))
+	fmt.Printf("%sworked    : %s\n", indent, f(s.Worked, precision))
+	fmt.Printf("%splanned   : %s\n", indent, f(s.Planned, precision))
+	fmt.Printf("%sdifference: %s\n", indent, f(s.Difference, precision))
 	fmt.Printf("%spercentage: %.2f%%\n", indent, s.Percentage*100)
 	if len(s.ByProjects) > 0 {
 		fmt.Printf("%sby projects:\n", indent)
@@ -59,7 +61,8 @@ type Project struct {
 // Print prints an indented representation of Project and Tasks if ByTasks
 // contains at least one element.
 func (p Project) Print(indent string) {
-	fmt.Printf("%s  %s: %s\n", indent, p.Name, utils.FormatDuration(p.Worked))
+	precision := config.Get().GetPrecision()
+	fmt.Printf("%s  %s: %s\n", indent, p.Name, utils.FormatDuration(p.Worked, precision))
 	if len(p.ByTasks) > 0 {
 		fmt.Printf("%s  by tasks:\n", indent)
 		for _, t := range p.ByTasks {
@@ -76,9 +79,10 @@ type Task struct {
 
 // Print prints an indented representation of Task
 func (t Task) Print(indent string) {
+	precision := config.Get().GetPrecision()
 	name := t.Name
 	if name == "" {
 		name = "without task"
 	}
-	fmt.Printf("%s    %s: %s\n", indent, name, utils.FormatDuration(t.Worked))
+	fmt.Printf("%s    %s: %s\n", indent, name, utils.FormatDuration(t.Worked, precision))
 }

@@ -131,6 +131,11 @@ func GetRunningTimer() (bool, types.Timer, error) {
 	return exists, t, nil
 }
 
+// GetTimers returns all timers after applying the filter
+func GetTimers(filter types.Filter) (types.Timers, error) {
+	return s.GetTimers(filter)
+}
+
 func getStartTime(timestamp string) (time.Time, error) {
 	if timestamp == "" {
 		return time.Now(), nil

@@ -75,6 +75,19 @@ func TestFileGetTimer(t *testing.T) {
 	}
 }
 
+func TestFileGetTimerNoExist(t *testing.T) {
+	testFile.timers = types.Timers{types.Timer{
+		Uuid:    uuid.Must(uuid.NewRandom()),
+		Start:   time.Now(),
+		End:     time.Now().Add(time.Hour),
+		Project: "test",
+	}}
+	_, err := s.GetTimer(uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000000")))
+	if err == nil {
+		t.Fatal("expected error because timer does not exist")
+	}
+}
+
 func TestFileGetRunningTimer(t *testing.T) {
 	id := uuid.Must(uuid.NewRandom())
 	timerNew := types.Timer{
@@ -96,6 +109,20 @@ func TestFileGetRunningTimer(t *testing.T) {
 	err = timersEqual(timerNew, timerStore)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestFileGetRunningTimerNoExist(t *testing.T) {
+	// place two timers, the running timer and a completed one
+	testFile.timers = types.Timers{types.Timer{
+		Uuid:    uuid.Must(uuid.NewRandom()),
+		Start:   time.Now().Add(-time.Hour),
+		End:     time.Now().Add(-30 * time.Minute),
+		Project: "test",
+	}}
+	_, err := s.GetRunningTimer()
+	if err == nil {
+		t.Fatal("expected error because of no running timer")
 	}
 }
 
@@ -230,6 +257,26 @@ func TestFileStoreTimer(t *testing.T) {
 	err = timersEqual(timerNew, testFile.timers[0])
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestFileStoreTimerNoDuplicate(t *testing.T) {
+	id := uuid.Must(uuid.NewRandom())
+	// reset timer storage
+	testFile.timers = types.Timers{types.Timer{
+		Uuid:    id,
+		Start:   time.Now(),
+		Project: "test",
+		Task:    "test",
+		Tags:    []string{"test"},
+	}}
+	err := s.StoreTimer(types.Timer{
+		Uuid:    id,
+		Start:   time.Now(),
+		Project: "test",
+	})
+	if err == nil {
+		t.Fatal("expected error because of duplicate uuids")
 	}
 }
 

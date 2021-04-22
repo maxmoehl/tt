@@ -21,8 +21,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/maxmoehl/tt/config"
-
 	"github.com/fatih/color"
 )
 
@@ -65,7 +63,7 @@ func StringSliceContains(strings []string, s string) bool {
 
 // FormatDuration formats a duration in the precision defined by the
 // config.
-func FormatDuration(d time.Duration) string {
+func FormatDuration(d time.Duration, precision time.Duration) string {
 	h := d / time.Hour
 	m := (d - (h * time.Hour)) / time.Minute
 	s := (d - (h * time.Hour) - (m * time.Minute)) / time.Second
@@ -76,7 +74,7 @@ func FormatDuration(d time.Duration) string {
 		m *= -1
 		s *= -1
 	}
-	switch config.Get().GetPrecision() {
+	switch precision {
 	case time.Second:
 		return fmt.Sprintf("%s%dh%dm%ds", sign, h, m, s)
 	case time.Minute:

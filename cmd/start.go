@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/maxmoehl/tt/storage"
 	"github.com/maxmoehl/tt/utils"
@@ -77,7 +78,7 @@ func start(cmd *cobra.Command, args []string) {
 		utils.PrintError(err, silent)
 	}
 	if !silent {
-		fmt.Println("Work tracking started!")
+		fmt.Printf("[%d:%d] Work tracking started!\n", time.Now().Hour(), time.Now().Minute())
 		fmt.Printf("  project: %s\n", project)
 		if task != "" {
 			fmt.Printf("  task   : %s\n", task)

@@ -85,9 +85,6 @@ func (f *file) StoreTimer(newTimer types.Timer) error {
 func (f *file) UpdateTimer(updatedTimer types.Timer) error {
 	for i, t := range f.timers {
 		if t.Uuid == updatedTimer.Uuid {
-			f.timers[i].Project = updatedTimer.Project
-			f.timers[i].Task = updatedTimer.Task
-			f.timers[i].Start = updatedTimer.Start
 			f.timers[i].End = updatedTimer.End
 			break
 		}

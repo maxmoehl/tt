@@ -29,5 +29,7 @@ type Storage interface {
 	GetTimers(filter Filter) (Timers, error)
 	RunningTimerExists() (bool, error)
 	StoreTimer(timer Timer) error
+	// UpdateTimer only allows the stop time to be updated
+	// any other changes will be discarded.
 	UpdateTimer(timer Timer) error
 }

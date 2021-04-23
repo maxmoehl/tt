@@ -30,6 +30,7 @@ import (
 const (
 	exportFormatCSV  = "csv"
 	exportFormatJSON = "json"
+	exportFormatSQL  = "sql"
 )
 
 var exportCmd = &cobra.Command{
@@ -60,6 +61,8 @@ func export(cmd *cobra.Command, args []string) {
 		out = string(b)
 	case exportFormatCSV:
 		out, err = timers.CSV()
+	case exportFormatSQL:
+		out, err = timers.SQL()
 	}
 	if err != nil {
 		utils.PrintError(err, silent)
@@ -73,7 +76,7 @@ func getExportParameters(cmd *cobra.Command, args []string) (silent bool, filter
 		utils.PrintError(fmt.Errorf("expected one argument"), silent)
 	}
 	exportFormat = args[0]
-	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON {
+	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON && exportFormat != exportFormatSQL {
 		utils.PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
 	}
 	filterString, err := cmd.LocalFlags().GetString(flagFilter)

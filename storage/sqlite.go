@@ -196,7 +196,7 @@ func (db *sqlite) scanRow(row scanable) (types.Timer, error) {
 		return types.Timer{}, fmt.Errorf("found nil project string")
 	}
 	var taskString string
-	if task == nil {
+	if task != nil {
 		taskString = *task
 	} else {
 		taskString = ""

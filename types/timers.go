@@ -18,6 +18,7 @@ package types
 
 import (
 	"encoding/csv"
+	"fmt"
 	"strings"
 	"time"
 
@@ -120,6 +121,33 @@ func (timers Timers) CSV() (string, error) {
 	err = w.Error()
 	if err != nil {
 		return "", err
+	}
+	return b.String(), nil
+}
+
+func (timers Timers) SQL() (string, error) {
+	b := strings.Builder{}
+	b.WriteString("CREATE TABLE IF NOT EXISTS timers (uuid TEXT PRIMARY KEY, start INTEGER NOT NULL, stop INTEGER, project TEXT NOT NULL, task TEXT, tags TEXT);\n")
+	for _, t := range timers {
+		var stop interface{}
+		var task, tags string
+		if !t.End.IsZero() {
+			stop = t.End.Unix()
+		} else {
+			stop = "NULL"
+		}
+		if t.Task != "" {
+			task = "'" + t.Task + "'"
+		} else {
+			task = "NULL"
+		}
+		if len(t.Tags) > 0 {
+			tags = "'" + strings.Join(t.Tags, ",") + "'"
+		} else {
+			tags = "NULL"
+		}
+		b.WriteString(fmt.Sprintf("INSERT INTO timers (uuid, start, stop, project, task, tags) VALUES ('%v', %v, %v, '%v', %v, %v);\n",
+			t.Uuid.String(), t.Start.Unix(), stop, t.Project, task, tags))
 	}
 	return b.String(), nil
 }

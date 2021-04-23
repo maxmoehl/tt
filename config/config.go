@@ -26,6 +26,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	StorageTypeFile = "file"
+	StorageTypeSQLite = "sqlite"
+)
+
 var c Config
 
 // Config holds all available configuration values.
@@ -46,6 +51,9 @@ type Config struct {
 	// Precision sets how precise the stats should be evaluated. Available values are: [s second m minute h hour]
 	// Default: second
 	Precision string `yaml:"precision"`
+	// StorageType indicates which type of storage tt should use. Available values are: [file sqlite]
+	// Default: file
+	StorageType string `yaml:"storageType"`
 }
 
 // GetPrecision returns the precision as a duration.
@@ -112,6 +120,9 @@ func validate() error {
 		c.WorkHours = 8
 	} else if c.WorkHours < 0 || c.WorkHours > 24 {
 		return fmt.Errorf("workHours has be bigger than 0 and smaller than 25 but is %d", c.WorkHours)
+	}
+	if c.StorageType != StorageTypeFile && c.StorageType != StorageTypeSQLite {
+		return fmt.Errorf("invalid storage type %s", c.StorageType)
 	}
 	return nil
 }

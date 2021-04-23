@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"github.com/maxmoehl/tt/config"
 	"github.com/maxmoehl/tt/types"
 )
 
@@ -24,7 +25,12 @@ var s types.Storage
 
 func init() {
 	var err error
-	s, err = NewFile()
+	switch config.Get().StorageType {
+	case config.StorageTypeFile:
+		s, err = NewFile()
+	case config.StorageTypeSQLite:
+		s, err = NewSQLite()
+	}
 	if err != nil {
 		panic(err.Error())
 	}

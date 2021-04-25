@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/maxmoehl/tt/storage"
 	"github.com/maxmoehl/tt/utils"
@@ -40,7 +41,9 @@ format:
 Otherwise an appropriate error will be printed. The cli will check if the
 given stop time is valid, e.g. if the last timer and break that were
 started, started before the given stop.`,
-	Run: stop,
+	Run: func(cmd *cobra.Command, args []string) {
+		stop(getStopParameters(cmd, args))
+	},
 }
 
 func init() {
@@ -48,20 +51,26 @@ func init() {
 	stopCmd.Flags().String(flagTimestamp, "", "Manually set the stop time for a timer. Format must be RFC3339")
 }
 
-func stop(cmd *cobra.Command, args []string) {
-	silent := getSilent(cmd)
-	if len(args) != 0 && !silent {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
-	}
-	timestamp, err := cmd.Flags().GetString(flagTimestamp)
-	if err != nil {
-		utils.PrintError(err, silent)
-	}
-	err = storage.StopTimer(timestamp)
+func stop(silent bool, timestamp string) {
+	timer, err := storage.StopTimer(timestamp)
 	if err != nil {
 		utils.PrintError(err, silent)
 	}
 	if !silent {
-		fmt.Println("You're done! Good job.")
+		fmt.Printf("You worked for %s! Good job.\n", timer.Duration().Round(time.Second).String())
 	}
 }
+
+func getStopParameters(cmd *cobra.Command, args []string) (silent bool, timestamp string) {
+	var err error
+	silent = getSilent(cmd)
+	timestamp, err = cmd.Flags().GetString(flagTimestamp)
+	if err != nil {
+		utils.PrintError(err, silent)
+	}
+	if len(args) != 0 && !silent {
+		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+	}
+	return
+}
+

@@ -84,7 +84,9 @@ formed. Available values are:
   days   : Show report for each day
 
 Invalid values are ignored.`,
-	Run: stats,
+	Run: func(cmd *cobra.Command, args []string) {
+		stats(getStatsParameters(cmd, args))
+	},
 }
 
 func init() {
@@ -94,11 +96,7 @@ func init() {
 	statsCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "Filter the data before generating statistics")
 }
 
-func stats(cmd *cobra.Command, args []string) {
-	silent, j, groupBy, filterString := getStatsFlags(cmd)
-	if len(args) != 0 {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
-	}
+func stats(silent, jsonFlag bool, groupBy, filterString string) {
 	byProject, byTask, byDay := getGroupByFields(groupBy)
 	// the only thing we do is provide output, so there is no point in doing anything if
 	// no output should be given
@@ -114,8 +112,8 @@ func stats(cmd *cobra.Command, args []string) {
 		if err != nil {
 			utils.PrintError(err, silent)
 		}
-		printStatsStatistics(statistics, j)
-		if !j {
+		printStatsStatistics(statistics, jsonFlag)
+		if !jsonFlag {
 			statistic, err := storage.GetTimeStatistics(false, false, filter)
 			if err != nil {
 				utils.PrintError(err, silent)
@@ -128,7 +126,7 @@ func stats(cmd *cobra.Command, args []string) {
 		if err != nil {
 			utils.PrintError(err, silent)
 		}
-		if j {
+		if jsonFlag {
 			err = json.NewEncoder(os.Stdout).Encode(statistic)
 			if err != nil {
 				utils.PrintError(err, false)
@@ -163,7 +161,7 @@ func printStatsStatistics(statistics map[string]types.Statistic, j bool) {
 	}
 }
 
-func getStatsFlags(cmd *cobra.Command) (silent, jsonFlag bool, groupBy, filter string) {
+func getStatsParameters(cmd *cobra.Command, args []string) (silent, jsonFlag bool, groupBy, filter string) {
 	var err error
 	silent = getSilent(cmd)
 	jsonFlag, err = cmd.LocalFlags().GetBool(flagJSON)
@@ -177,6 +175,9 @@ func getStatsFlags(cmd *cobra.Command) (silent, jsonFlag bool, groupBy, filter s
 	filter, err = cmd.LocalFlags().GetString(flagFilter)
 	if err != nil {
 		utils.PrintError(err, silent)
+	}
+	if len(args) != 0 {
+		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
 	}
 	return
 }

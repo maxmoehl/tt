@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/maxmoehl/tt/storage"
 	"github.com/maxmoehl/tt/utils"
@@ -52,7 +51,9 @@ Otherwise an appropriate error will be printed. The cli will check if the
 given start time is valid, e.g. if the last timer that ended, ended before
 the given start.`,
 	Example: "tt start programming -t tt --tags private",
-	Run:     start,
+	Run: func(cmd *cobra.Command, args []string) {
+		start(getStartParameters(cmd, args))
+	},
 }
 
 func init() {
@@ -62,34 +63,28 @@ func init() {
 	startCmd.Flags().String(flagTags, "", "Specify tags for this timer")
 }
 
-func start(cmd *cobra.Command, args []string) {
-	silent := getSilent(cmd)
-	if len(args) != 1 {
-		utils.PrintError(fmt.Errorf("this command needs exactly one argument"), silent)
-	}
-	project := args[0]
-	silent, task, timestamp, tagsString := getStartFlags(cmd)
+func start(silent bool, project, task, timestamp, tagsString string) {
 	var tags []string
 	if tagsString != "" {
 		tags = strings.Split(tagsString, ",")
 	}
-	err := storage.StartTimer(project, task, timestamp, tags)
+	timer, err := storage.StartTimer(project, task, timestamp, tags)
 	if err != nil {
 		utils.PrintError(err, silent)
 	}
 	if !silent {
-		fmt.Printf("[%d:%d] Work tracking started!\n", time.Now().Hour(), time.Now().Minute())
-		fmt.Printf("  project: %s\n", project)
+		fmt.Printf("[%02d:%02d] Work tracking started!\n", timer.Start.Hour(), timer.Start.Minute())
+		fmt.Printf("  project: %s\n", timer.Project)
 		if task != "" {
-			fmt.Printf("  task   : %s\n", task)
+			fmt.Printf("  task   : %s\n", timer.Task)
 		}
 		if len(tags) > 0 {
-			fmt.Printf("  tags   : %s\n", strings.Join(tags, ", "))
+			fmt.Printf("  tags   : %s\n", strings.Join(timer.Tags, ", "))
 		}
 	}
 }
 
-func getStartFlags(cmd *cobra.Command) (silent bool, task, timestamp, tags string) {
+func getStartParameters(cmd *cobra.Command, args []string) (silent bool, project, task, timestamp, tags string) {
 	var err error
 	silent = getSilent(cmd)
 	task, err = cmd.LocalFlags().GetString(flagTask)
@@ -104,5 +99,9 @@ func getStartFlags(cmd *cobra.Command) (silent bool, task, timestamp, tags strin
 	if err != nil {
 		utils.PrintError(err, silent)
 	}
+	if len(args) != 1 {
+		utils.PrintError(fmt.Errorf("this command needs exactly one argument"), silent)
+	}
+	project = args[0]
 	return
 }

@@ -31,18 +31,16 @@ var resumeCmd = &cobra.Command{
 	Long: `Resume the last timer.
 
 If no timer is found an error is returned.`,
-	Run: resume,
+	Run: func(cmd *cobra.Command, args []string) {
+		resume(getResumeParameters(cmd, args))
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(resumeCmd)
 }
 
-func resume(cmd *cobra.Command, args []string) {
-	silent := getSilent(cmd)
-	if len(args) != 0 && !silent {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
-	}
+func resume(silent bool) {
 	t, err := storage.ResumeTimer()
 	if err != nil {
 		utils.PrintError(err, silent)
@@ -57,4 +55,12 @@ func resume(cmd *cobra.Command, args []string) {
 			fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ", "))
 		}
 	}
+}
+
+func getResumeParameters(cmd *cobra.Command, args []string) (silent bool) {
+	silent = getSilent(cmd)
+	if len(args) != 0 && !silent {
+		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+	}
+	return
 }

@@ -31,18 +31,16 @@ var statusCmd = &cobra.Command{
 	Short: "Prints a short notice on the current status",
 	Long: `Reports if you are currently working, taking a break or taking some
 time off.`,
-	Run: status,
+	Run: func(cmd *cobra.Command, args []string) {
+		status(getStatusParameters(cmd, args))
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
 }
 
-func status(cmd *cobra.Command, args []string) {
-	silent := getSilent(cmd)
-	if len(args) != 0 && !silent {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
-	}
+func status(silent bool) {
 	if silent {
 		return
 	}
@@ -61,4 +59,12 @@ func status(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Currently timing project %s for %s, your doing good!\n", timer.Project, timingFor)
 	}
+}
+
+func getStatusParameters(cmd *cobra.Command, args []string) (silent bool) {
+	silent = getSilent(cmd)
+	if len(args) != 0 && !silent {
+		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+	}
+	return
 }

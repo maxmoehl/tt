@@ -28,32 +28,33 @@ import (
 // StartTimer starts a new timer, and validates that the passed in values.
 // If an error is returned no changes have been made, except if the error
 // is from writing to the file.
-func StartTimer(project, task, timestamp string, tags []string) error {
+func StartTimer(project, task, timestamp string, tags []string) (types.Timer, error) {
 	if running, err := s.RunningTimerExists(); err != nil {
-		return err
+		return types.Timer{}, err
 	} else if running {
-		return fmt.Errorf("running timer found, cannot create a new one")
+		return types.Timer{}, fmt.Errorf("running timer found, cannot create a new one")
 	}
 	start, err := getStartTime(timestamp)
 	if err != nil {
-		return err
+		return types.Timer{}, err
 	}
-	return s.StoreTimer(types.Timer{
+	t := types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   start,
 		Project: project,
 		Task:    task,
 		Tags:    tags,
-	})
+	}
+	return t, s.StoreTimer(t)
 }
 
 // StopTimer stops a timer and validates the given timestamp (if any).
 // If an error is returned no changes have been made, except if the error
 // is from writing to the file.
-func StopTimer(timestamp string) error {
+func StopTimer(timestamp string) (types.Timer, error) {
 	runningTimer, err := GetRunningTimer()
 	if err != nil {
-		return err
+		return types.Timer{}, err
 	}
 	var stop time.Time
 	if timestamp == "" {
@@ -62,14 +63,17 @@ func StopTimer(timestamp string) error {
 		var err error
 		stop, err = time.Parse(time.RFC3339, timestamp)
 		if err != nil {
-			return err
+			return types.Timer{}, err
 		}
 		if runningTimer.Start.After(stop) {
-			return fmt.Errorf("the given stop time is before the start time of this timer")
+			return types.Timer{}, fmt.Errorf("the given stop time is before the start time of this timer")
 		}
 	}
+	if stop.Before(runningTimer.Start) {
+		return types.Timer{}, fmt.Errorf("stop time is before start time")
+	}
 	runningTimer.Stop = stop
-	return s.UpdateTimer(runningTimer)
+	return runningTimer, s.UpdateTimer(runningTimer)
 }
 
 func ResumeTimer() (types.Timer, error) {

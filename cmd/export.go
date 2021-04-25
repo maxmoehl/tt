@@ -36,7 +36,9 @@ const (
 var exportCmd = &cobra.Command{
 	Use:   "export format",
 	Short: "Export data to a given format",
-	Run:   export,
+	Run: func(cmd *cobra.Command, args []string) {
+		export(getExportParameters(cmd, args))
+	},
 }
 
 func init() {
@@ -44,10 +46,30 @@ func init() {
 	exportCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "Set a filter to apply before exporting")
 }
 
-func export(cmd *cobra.Command, args []string) {
-	silent, filter, exportFormat := getExportParameters(cmd, args)
+func getExportParameters(cmd *cobra.Command, args []string) (silent bool, filter, exportFormat string) {
+	var err error
+	silent = getSilent(cmd)
+	if len(args) != 1 {
+		utils.PrintError(fmt.Errorf("expected one argument"), silent)
+	}
+	exportFormat = args[0]
+	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON && exportFormat != exportFormatSQL {
+		utils.PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
+	}
+	filter, err = cmd.LocalFlags().GetString(flagFilter)
+	if err != nil {
+		utils.PrintError(err, silent)
+	}
+	return
+}
+
+func export(silent bool, filterString, exportFormat string) {
 	if silent {
 		return
+	}
+	filter, err := types.GetFilter(filterString)
+	if err != nil {
+		utils.PrintError(err, silent)
 	}
 	timers, err := storage.GetTimers(filter)
 	if err != nil {
@@ -68,24 +90,4 @@ func export(cmd *cobra.Command, args []string) {
 		utils.PrintError(err, silent)
 	}
 	fmt.Println(out)
-}
-
-func getExportParameters(cmd *cobra.Command, args []string) (silent bool, filter types.Filter, exportFormat string) {
-	silent = getSilent(cmd)
-	if len(args) != 1 {
-		utils.PrintError(fmt.Errorf("expected one argument"), silent)
-	}
-	exportFormat = args[0]
-	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON && exportFormat != exportFormatSQL {
-		utils.PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
-	}
-	filterString, err := cmd.LocalFlags().GetString(flagFilter)
-	if err != nil {
-		utils.PrintError(err, silent)
-	}
-	filter, err = types.GetFilter(filterString)
-	if err != nil {
-		utils.PrintError(err, silent)
-	}
-	return
 }

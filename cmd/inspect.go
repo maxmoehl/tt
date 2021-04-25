@@ -33,18 +33,16 @@ var inspectCmd = &cobra.Command{
 If any timers are printed and the command reports an error, this means
 that there is more than one running timer. Please try to remove the
 timer form the data source or finish it by setting a valid end time.`,
-	Run: inspect,
+	Run: func(cmd *cobra.Command, args []string) {
+		inspect(getInspectParameters(cmd, args))
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(inspectCmd)
 }
 
-func inspect(cmd *cobra.Command, args []string) {
-	silent := getSilent(cmd)
-	if len(args) != 0 && !silent {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
-	}
+func inspect(silent bool) {
 	if silent {
 		return
 	}
@@ -68,4 +66,12 @@ func inspect(cmd *cobra.Command, args []string) {
 		}
 		fmt.Println("ERROR")
 	}
+}
+
+func getInspectParameters(cmd *cobra.Command, args []string) (silent bool) {
+	silent = getSilent(cmd)
+	if len(args) != 0 && !silent {
+		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+	}
+	return
 }

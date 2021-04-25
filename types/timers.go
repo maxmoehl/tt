@@ -30,7 +30,7 @@ import (
 type Timer struct {
 	Uuid    uuid.UUID `json:"uuid"`
 	Start   time.Time `json:"start"`
-	End     time.Time `json:"end"`
+	Stop    time.Time `json:"end"`
 	Project string    `json:"project"`
 	Task    string    `json:"task,omitempty"`
 	Tags    []string  `json:"tags,omitempty"`
@@ -39,17 +39,17 @@ type Timer struct {
 // Duration returns the duration that the timer has been running,
 // excluding any breaks.
 func (t Timer) Duration() time.Duration {
-	return t.End.Sub(t.Start)
+	return t.Stop.Sub(t.Start)
 }
 
 // Running indicates whether or not the timer is still running.
 func (t Timer) Running() bool {
-	return t.End.IsZero()
+	return t.Stop.IsZero()
 }
 
 // IsZero checks if the timer has been properly initialized.
 func (t Timer) IsZero() bool {
-	return t.Start.IsZero() && t.End.IsZero()
+	return t.Start.IsZero() && t.Stop.IsZero()
 }
 
 // Timers stores a list of timers to attach functions to it.
@@ -70,7 +70,7 @@ func (timers Timers) Running() (bool, int) {
 // timers can be excluded by passing false in.
 func (timers Timers) Last(running bool) (t Timer) {
 	for _, timer := range timers {
-		if !running && timer.End.IsZero() {
+		if !running && timer.Stop.IsZero() {
 			continue
 		}
 		if timer.Start.After(t.Start) {
@@ -90,12 +90,9 @@ func (timers Timers) First() (t Timer) {
 	return
 }
 
-// Filter applies the given filter to every element and returns those that
-// match the filter.
+// Filter applies the given Filter to every element and returns those that
+// match the Filter.
 func (timers Timers) Filter(f Filter) (filtered Timers) {
-	if f == nil {
-		return timers
-	}
 	for _, t := range timers {
 		if f.Match(t) {
 			filtered = append(filtered, t)
@@ -112,7 +109,7 @@ func (timers Timers) CSV() (string, error) {
 		return "", err
 	}
 	for _, t := range timers {
-		err = w.Write([]string{t.Uuid.String(), t.Start.String(), t.End.String(), t.Project, t.Task, strings.Join(t.Tags, ", ")})
+		err = w.Write([]string{t.Uuid.String(), t.Start.String(), t.Stop.String(), t.Project, t.Task, strings.Join(t.Tags, ", ")})
 		if err != nil {
 			return "", err
 		}
@@ -131,8 +128,8 @@ func (timers Timers) SQL() (string, error) {
 	for _, t := range timers {
 		var stop interface{}
 		var task, tags string
-		if !t.End.IsZero() {
-			stop = t.End.Unix()
+		if !t.Stop.IsZero() {
+			stop = t.Stop.Unix()
 		} else {
 			stop = "NULL"
 		}

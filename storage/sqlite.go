@@ -14,6 +14,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	sqlOperatorLike   = "LIKE"
+	sqlOperatorEquals = "="
+)
+
 type scanable interface {
 	Scan(dest ...interface{}) error
 }
@@ -35,7 +40,7 @@ func (db *sqlite) GetRunningTimer() (types.Timer, error) {
 	selectStmt := `
 		SELECT *
 		FROM timers
-		WHERE timers.stop ISNULL;`
+		WHERE stop ISNULL;`
 	row := db.db.QueryRow(selectStmt)
 	return db.scanRow(row)
 }
@@ -44,7 +49,7 @@ func (db *sqlite) GetLastTimer(running bool) (types.Timer, error) {
 	selectStmt := `
 		SELECT *
 		FROM timers
-		ORDER BY timers.start DESC
+		ORDER BY start DESC
 		LIMIT 2;`
 	rows, err := db.db.Query(selectStmt)
 	if err != nil {
@@ -72,9 +77,10 @@ func (db *sqlite) GetLastTimer(running bool) (types.Timer, error) {
 }
 
 func (db *sqlite) GetTimers(filter types.Filter) (types.Timers, error) {
-	selectStmt := `
+	selectStmt := fmt.Sprintf(`
 		SELECT *
-		FROM timers;`
+		FROM timers
+		WHERE %s;`, getWhereClause(filter))
 	rows, err := db.db.Query(selectStmt)
 	if err != nil {
 		return types.Timers{}, err
@@ -86,6 +92,8 @@ func (db *sqlite) GetTimers(filter types.Filter) (types.Timers, error) {
 		if err != nil {
 			return nil, err
 		}
+		// We still filter the timers since the sql filtering for tags
+		// is questionable at best
 		if filter.Match(t) {
 			timers = append(timers, t)
 		}
@@ -122,8 +130,8 @@ func (db *sqlite) StoreTimer(timer types.Timer) error {
 	id := timer.Uuid.String()
 	start := timer.Start.Unix()
 	var stop, task, tags interface{}
-	if !timer.End.IsZero() {
-		stop = timer.End.Unix()
+	if !timer.Stop.IsZero() {
+		stop = timer.Stop.Unix()
 	}
 	if timer.Task != "" {
 		task = timer.Task
@@ -140,7 +148,7 @@ func (db *sqlite) UpdateTimer(timer types.Timer) error {
 		UPDATE timers
 		SET stop = ?
 		WHERE uuid = ?;`
-	res, err := db.db.Exec(updateStmt, timer.End.Unix(), timer.Uuid.String())
+	res, err := db.db.Exec(updateStmt, timer.Stop.Unix(), timer.Uuid.String())
 	if err != nil {
 		return err
 	}
@@ -208,7 +216,7 @@ func (db *sqlite) scanRow(row scanable) (types.Timer, error) {
 	return types.Timer{
 		Uuid:    UUID,
 		Start:   startTime,
-		End:     stopTime,
+		Stop:    stopTime,
 		Project: *project,
 		Task:    taskString,
 		Tags:    tagList,
@@ -231,4 +239,59 @@ func NewSQLite() (types.Storage, error) {
 		return nil, err
 	}
 	return storage, nil
+}
+
+func getWhereClause(f types.Filter) string {
+	var filters []string
+	projects := convertFilter("project", f.Project, sqlOperatorEquals)
+	if projects != "" {
+		filters = append(filters, projects)
+	}
+	tasks := convertFilter("task", f.Task, sqlOperatorEquals)
+	if tasks != "" {
+		filters = append(filters, tasks)
+	}
+	tags := convertFilter("tags", f.Tags, sqlOperatorLike)
+	if tags != "" {
+		filters = append(filters, tags)
+	}
+	if !f.Since.IsZero() {
+		filters = append(filters, fmt.Sprintf("start > %d", f.Since.Unix()))
+	}
+	if !f.Until.IsZero() {
+		filters = append(filters, fmt.Sprintf("stop < %d", f.Until.Unix()))
+	}
+	// if there are no filters return TRUE to match all values
+	if len(filters) == 0 {
+		return "TRUE"
+	}
+	return strings.Join(filters, " AND ")
+}
+
+func convertFilter(key string, values []string, operator string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	b := strings.Builder{}
+	for i, v := range values {
+		if i > 0 {
+			b.WriteString(" OR ")
+		} else {
+			b.WriteString("(")
+		}
+		switch operator {
+		case sqlOperatorEquals:
+			b.WriteString(key)
+			b.WriteString("='")
+			b.WriteString(v)
+			b.WriteString("'")
+		case sqlOperatorLike:
+			b.WriteString(key)
+			b.WriteString(" LIKE '%")
+			b.WriteString(v)
+			b.WriteString("%'")
+		}
+	}
+	b.WriteString(")")
+	return b.String()
 }

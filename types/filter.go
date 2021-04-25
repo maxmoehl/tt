@@ -35,39 +35,33 @@ const (
 	valuesSeparator  = ","
 )
 
-// Filter is a interface for types that can be used to filter Timers.
-type Filter interface {
-	Match(Timer) bool
-	Filter(Timers) Timers
-}
-
-// filter contains all available filters. If a value is empty (i.e. ""
-// or nil) it is assumed that the filter is not set and all values are
+// Filter contains all available filters. If a value is empty (i.e. ""
+// or nil) it is assumed that the Filter is not set and all values are
 // included.
-type filter struct {
+type Filter struct {
 	// Project contains all project names that should be included. Accepts
-	// multiple values. Project filter can be set with the keyword 'project'.
+	// multiple values. Project Filter can be set with the keyword 'project'.
 	Project []string
 	// Task contains all task names that should be included. Accepts
-	// multiple values. Task filter can be set with the keyword 'task'.
+	// multiple values. Task Filter can be set with the keyword 'task'.
 	Task []string
 	// Since stores the date from which on the data should be included. Since
 	// is inclusive and only accepts a single value in the following form:
 	//   yyyy-MM-dd
-	// Since filter can be set with the keyword 'since'.
+	// Since Filter can be set with the keyword 'since'.
 	Since time.Time
 	// Until stores the last date that should be included. Until is inclusive
 	// and only accepts a single value in the following form:
 	//	 yyyy-MM-dd
-	// Until filter can be set with the keyword 'until'.
+	// Until Filter can be set with the keyword 'until'.
 	Until time.Time
 	// Tags contains all tags that should be included. They are parsed as a
 	// comma separated list and can be set with the keyword 'tags'.
 	Tags []string
 }
 
-// Match checks if a given Timer matches this filter.
-func (f filter) Match(t Timer) bool {
+// Match checks if a given Timer matches this Filter.
+func (f Filter) Match(t Timer) bool {
 	if f.Project != nil && !utils.StringSliceContains(f.Project, t.Project) {
 		return false
 	}
@@ -77,7 +71,7 @@ func (f filter) Match(t Timer) bool {
 	if !f.Since.IsZero() && t.Start.Before(f.Since) {
 		return false
 	}
-	if !f.Until.IsZero() && (t.Start.After(f.Until) || t.End.After(f.Until)) {
+	if !f.Until.IsZero() && (t.Start.After(f.Until) || t.Stop.After(f.Until)) {
 		return false
 	}
 	if f.Tags != nil && !stringSliceContainsAny(f.Tags, t.Tags) {
@@ -87,8 +81,8 @@ func (f filter) Match(t Timer) bool {
 }
 
 // Filter takes a list of Timers and returns a new list only containing
-// timers that match the filter.
-func (f filter) Filter(timers Timers) (filtered Timers) {
+// timers that match the Filter.
+func (f Filter) Filter(timers Timers) (filtered Timers) {
 	for _, t := range timers {
 		if f.Match(t) {
 			filtered = append(filtered, t)
@@ -97,12 +91,12 @@ func (f filter) Filter(timers Timers) (filtered Timers) {
 	return
 }
 
-// GetFilter takes a string and creates a filter struct from it. The
-// filter string has to be in the following format:
+// GetFilter takes a string and creates a Filter struct from it. The
+// Filter string has to be in the following format:
 //
 //   filterName=values;filterName=values;...
 //
-// each filterName consists of a string, values contains the filter
+// each filterName consists of a string, values contains the Filter
 // value. Some filters only accept a single value, others accept multiple
 // values separated by commas.
 //
@@ -120,21 +114,21 @@ func (f filter) Filter(timers Timers) (filtered Timers) {
 // since and until are inclusive, both dates will be included in filtered
 // data.
 func GetFilter(filterString string) (Filter, error) {
-	var F filter
+	var F Filter
 	if len(filterString) == 0 {
 		return F, nil
 	}
 	for _, f := range strings.Split(filterString, filtersSeparator) {
 		key, values, err := parseFilter(f)
 		if err != nil {
-			return nil, err
+			return Filter{}, err
 		}
 		err = parseValuesInto(key, values, &F)
 		if err != nil {
-			return nil, err
+			return Filter{}, err
 		}
 	}
-	// To make until inclusive we have to add 24h to it since filter.Match
+	// To make until inclusive we have to add 24h to it since Filter.Match
 	// checks if the end of a timer is before until
 	if !F.Until.IsZero() {
 		F.Until = F.Until.Add(time.Hour * 24)
@@ -142,10 +136,10 @@ func GetFilter(filterString string) (Filter, error) {
 	return F, nil
 }
 
-// NewFilter allows to create a filter that is not parsed from a filter
+// NewFilter allows to create a Filter that is not parsed from a Filter
 // string.
 func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
-	return filter{
+	return Filter{
 		Project: projects,
 		Task:    tasks,
 		Since:   since,
@@ -157,12 +151,12 @@ func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 func parseFilter(in string) (key, values string, err error) {
 	filterSplit := strings.Split(in, "=")
 	if len(filterSplit) != 2 {
-		return "", "", fmt.Errorf("expected one '=' per filter but got %d: [%s]", len(filterSplit), in)
+		return "", "", fmt.Errorf("expected one '=' per Filter but got %d: [%s]", len(filterSplit), in)
 	}
 	return filterSplit[0], filterSplit[1], nil
 }
 
-func parseValuesInto(key, values string, f *filter) (err error) {
+func parseValuesInto(key, values string, f *Filter) (err error) {
 	switch key {
 	case filterProject:
 		if f.Project != nil {

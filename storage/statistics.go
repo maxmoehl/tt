@@ -46,7 +46,7 @@ func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[st
 	}
 
 	b := timers.First().Start
-	e := timers.Last(false).End
+	e := timers.Last(false).Stop
 
 	currentDay := time.Date(b.Year(), b.Month(), b.Day(), 0, 0, 0, 0, time.Local)
 	end := time.Date(e.Year(), e.Month(), e.Day()+1, 0, 0, 0, 0, time.Local)
@@ -156,10 +156,10 @@ func plannedTime(timers types.Timers) (time.Duration, error) {
 	}
 
 	// get most recent timer
-	end := timers[0].End
+	end := timers[0].Stop
 	for _, t := range timers {
-		if t.End.Unix() > end.Unix() {
-			end = t.End
+		if t.Stop.Unix() > end.Unix() {
+			end = t.Stop
 		}
 	}
 

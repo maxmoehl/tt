@@ -46,18 +46,19 @@ func status(cmd *cobra.Command, args []string) {
 	if silent {
 		return
 	}
-	found, timer, err := storage.GetRunningTimer()
+	runningTimers, err := storage.CheckRunningTimers()
+	if len(runningTimers) == 0 {
+		fmt.Println("Currently not working. Enjoy your free time :)")
+		return
+	}
+	timer, err := storage.GetRunningTimer()
 	if err != nil {
 		utils.PrintError(err, silent)
 	}
-	if !found {
-		fmt.Println("Currently not working. Enjoy your free time :)")
+	timingFor := time.Now().Sub(timer.Start).Round(time.Second).String()
+	if timer.Task != "" {
+		fmt.Printf("Currently timing project %s with task %s for %s, your doing good!\n", timer.Project, timer.Task, timingFor)
 	} else {
-		timingFor := time.Now().Sub(timer.Start).Round(time.Second).String()
-		if timer.Task != "" {
-			fmt.Printf("Currently timing project %s with task %s for %s, your doing good!\n", timer.Project, timer.Task, timingFor)
-		} else {
-			fmt.Printf("Currently timing project %s for %s, your doing good!\n", timer.Project, timingFor)
-		}
+		fmt.Printf("Currently timing project %s for %s, your doing good!\n", timer.Project, timingFor)
 	}
 }

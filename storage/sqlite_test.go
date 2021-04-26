@@ -104,6 +104,41 @@ func TestSqliteGetTimerNotExist(t *testing.T) {
 	}
 }
 
+func TestSqliteGetRunningTimerNotExist(t *testing.T) {
+	err := setupSqliteTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = s.GetRunningTimer()
+	if err == nil {
+		t.Fatal("expected error because no running timer exists")
+	}
+}
+
+func TestSqliteGetRunningTimerExists(t *testing.T) {
+	err := setupSqliteTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	runningTimer := types.Timer{
+		Uuid:    uuid.Must(uuid.NewRandom()),
+		Start:   time.Unix(time.Now().Unix(), 0), // round to maximum precision of unix time
+		Project: "test",
+	}
+	err = sqliteCreateRecord(runningTimer)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sqliteTimer, err := s.GetRunningTimer()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = timersEqual(runningTimer, sqliteTimer)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
 func sqliteCreateRecord(timer types.Timer) error {
 	insertStmt := `INSERT INTO timers (uuid, start, stop, project, task, tags) VALUES (?, ?, ?, ?, ?, ?)`
 	var stop, task, tags interface{}

@@ -80,17 +80,6 @@ func (f Filter) Match(t Timer) bool {
 	return true
 }
 
-// Filter takes a list of Timers and returns a new list only containing
-// timers that match the Filter.
-func (f Filter) Filter(timers Timers) (filtered Timers) {
-	for _, t := range timers {
-		if f.Match(t) {
-			filtered = append(filtered, t)
-		}
-	}
-	return
-}
-
 // GetFilter takes a string and creates a Filter struct from it. The
 // Filter string has to be in the following format:
 //

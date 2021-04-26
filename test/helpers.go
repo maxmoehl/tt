@@ -10,18 +10,18 @@ import (
 var testDir string
 
 func Main(run func() int) {
-	dir := Setup()
-	defer Teardown(dir)
+	dir := setup()
+	defer teardown(dir)
 
 	exitCode := run()
 	if exitCode != 0 {
 		// os.Exit does not run deferred functions, therefore we run it manually
-		Teardown(dir)
+		teardown(dir)
 		os.Exit(exitCode)
 	}
 }
 
-func Setup() string {
+func setup() string {
 	var err error
 	testDir, err = os.MkdirTemp("", "tt-testing-*")
 	if err != nil {
@@ -34,7 +34,7 @@ func Setup() string {
 	return testDir
 }
 
-func Teardown(path string) {
+func teardown(path string) {
 	err := os.RemoveAll(path)
 	if err != nil {
 		panic(err.Error())

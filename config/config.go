@@ -128,7 +128,9 @@ func validate() error {
 	} else if c.WorkHours < 0 || c.WorkHours > 24 {
 		return fmt.Errorf("workHours has to be bigger than 0 and smaller than 25 but is %d", c.WorkHours)
 	}
-	if c.StorageType != StorageTypeFile && c.StorageType != StorageTypeSQLite {
+	if c.StorageType == "" {
+		c.StorageType = StorageTypeFile
+	} else if c.StorageType != StorageTypeFile && c.StorageType != StorageTypeSQLite {
 		return fmt.Errorf("invalid storage type %s", c.StorageType)
 	}
 	return nil

@@ -5,19 +5,6 @@ import (
 	"time"
 )
 
-const timersConfig = `
-precision: m
-workHours: 8
-storageType: file
-workDays:
-  monday: true
-  tuesday: true
-  wednesday: true
-  thursday: true
-  friday: true
-  saturday: false
-  sunday: false`
-
 func TestTimerDuration(t *testing.T) {
 	now := time.Now()
 	timer := Timer{Start: now, Stop: now.Add(time.Hour)}
@@ -77,5 +64,22 @@ func TestTimersRunning(t *testing.T) {
 	}
 	if running, _ := timers.Running(); !running {
 		t.Fatal("expected running timer")
+	}
+}
+
+func TestTimersFirst(t *testing.T) {
+	timer := Timers{
+		{
+			Start: time.Now().Add(-time.Hour),
+			Stop:  time.Now().Add(-30 * time.Minute),
+			Project: "a",
+		},
+		{
+			Start: time.Now(),
+			Project: "b",
+		},
+	}.First()
+	if timer.Project != "a" {
+		t.Fatal("expected to get timer with project a")
 	}
 }

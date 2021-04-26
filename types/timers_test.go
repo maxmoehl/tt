@@ -8,7 +8,7 @@ import (
 const timersConfig = `
 precision: m
 workHours: 8
-storageType: sqlite
+storageType: file
 workDays:
   monday: true
   tuesday: true

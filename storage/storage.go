@@ -60,13 +60,9 @@ func StopTimer(timestamp string) (types.Timer, error) {
 	if timestamp == "" {
 		stop = time.Now()
 	} else {
-		var err error
 		stop, err = time.Parse(time.RFC3339, timestamp)
 		if err != nil {
 			return types.Timer{}, err
-		}
-		if runningTimer.Start.After(stop) {
-			return types.Timer{}, fmt.Errorf("the given stop time is before the start time of this timer")
 		}
 	}
 	if stop.Before(runningTimer.Start) {

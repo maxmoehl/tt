@@ -23,11 +23,18 @@ import (
 // Storage is the general storage interface that is used to abstract the
 // direct data access.
 type Storage interface {
+	// GetTimer returns the timer specified by the given uuid. If no timer
+	// is found, types.ErrNotFound is returned
 	GetTimer(uuid uuid.UUID) (Timer, error)
-	GetRunningTimer() (Timer, error)
+	// GetLastTimer returns either the last timer of all timers if running
+	// is true or the last non-running timer if running is false. If no
+	// timer is found types.ErrNotFound is returned or wrapped in the
+	// returned error.
 	GetLastTimer(running bool) (Timer, error)
+	// GetTimers returns all Timers that match the filter. If no timer is
+	// found the returned error wraps types.ErrNotFound
 	GetTimers(filter Filter) (Timers, error)
-	RunningTimerExists() (bool, error)
+	// StoreTimer writes the given timer to the configured data source.
 	StoreTimer(timer Timer) error
 	// UpdateTimer only allows the stop time to be updated
 	// any other changes will be discarded.

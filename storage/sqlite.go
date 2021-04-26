@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -33,16 +34,11 @@ func (db *sqlite) GetTimer(uuid uuid.UUID) (types.Timer, error) {
 		FROM timers
 		WHERE timers.uuid = ?;`
 	row := db.db.QueryRow(selectStmt, uuid.String())
-	return db.scanRow(row)
-}
-
-func (db *sqlite) GetRunningTimer() (types.Timer, error) {
-	selectStmt := `
-		SELECT *
-		FROM timers
-		WHERE stop ISNULL;`
-	row := db.db.QueryRow(selectStmt)
-	return db.scanRow(row)
+	timer, err := db.scanRow(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return types.Timer{}, fmt.Errorf("timer %w", types.ErrNotFound)
+	}
+	return timer, nil
 }
 
 func (db *sqlite) GetLastTimer(running bool) (types.Timer, error) {
@@ -66,12 +62,12 @@ func (db *sqlite) GetLastTimer(running bool) (types.Timer, error) {
 	if rows.Err() != nil {
 		return types.Timer{}, rows.Err()
 	}
-	if timers == nil {
-		return types.Timer{}, fmt.Errorf("no timers found")
+	if len(timers) == 0 {
+		return types.Timer{}, fmt.Errorf("no timers found: %w", types.ErrNotFound)
 	}
 	timer := timers.Last(running)
 	if timer.IsZero() {
-		return types.Timer{}, fmt.Errorf("no timer found")
+		return types.Timer{}, fmt.Errorf("no timer found: %w", types.ErrNotFound)
 	}
 	return timer, nil
 }
@@ -101,26 +97,10 @@ func (db *sqlite) GetTimers(filter types.Filter) (types.Timers, error) {
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}
+	if len(timers) == 0 {
+		return nil, fmt.Errorf("no timers found: %w", types.ErrNotFound)
+	}
 	return timers, nil
-}
-
-func (db *sqlite) RunningTimerExists() (bool, error) {
-	selectStmt := `
-		SELECT *
-		FROM timers
-		WHERE stop ISNULL;`
-	rows, err := db.db.Query(selectStmt)
-	if err != nil {
-		return false, err
-	}
-	found := rows.Next()
-	if !found {
-		err = rows.Err()
-		if err != nil {
-			return false, err
-		}
-	}
-	return found, nil
 }
 
 func (db *sqlite) StoreTimer(timer types.Timer) error {

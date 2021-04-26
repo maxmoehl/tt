@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -29,9 +30,11 @@ import (
 // If an error is returned no changes have been made, except if the error
 // is from writing to the file.
 func StartTimer(project, task, timestamp string, tags []string) (types.Timer, error) {
-	if running, err := s.RunningTimerExists(); err != nil {
+	lastTimer, err := s.GetLastTimer(true)
+	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return types.Timer{}, err
-	} else if running {
+	}
+	if lastTimer.Running() && !errors.Is(err, types.ErrNotFound) {
 		return types.Timer{}, fmt.Errorf("running timer found, cannot create a new one")
 	}
 	start, err := getStartTime(timestamp)
@@ -73,27 +76,19 @@ func StopTimer(timestamp string) (types.Timer, error) {
 }
 
 func ResumeTimer() (types.Timer, error) {
-	exists, err := s.RunningTimerExists()
+	runningTimer, err := s.GetLastTimer(true)
 	if err != nil {
 		return types.Timer{}, err
 	}
-	if exists {
+	if runningTimer.Running() {
 		return types.Timer{}, fmt.Errorf("found running timer, cannot resume")
 	}
-	timers, err := s.GetTimers(types.Filter{})
-	if err != nil {
-		return types.Timer{}, err
-	}
-	t := timers.Last(false)
-	if t.IsZero() {
-		return types.Timer{}, fmt.Errorf("no timer found, cannot resume")
-	}
-	t = types.Timer{
+	t := types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
-		Project: t.Project,
-		Task:    t.Task,
-		Tags:    t.Tags,
+		Project: runningTimer.Project,
+		Task:    runningTimer.Task,
+		Tags:    runningTimer.Tags,
 	}
 	return t, s.StoreTimer(t)
 }
@@ -141,7 +136,7 @@ func getStartTime(timestamp string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	lastTimer, err := s.GetLastTimer(false)
-	if err != nil {
+	if err != nil && !errors.Is(err, types.ErrNotFound) {
 		return time.Time{}, err
 	}
 	if lastTimer.Stop.After(start) {

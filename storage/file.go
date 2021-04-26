@@ -38,33 +38,19 @@ func (f *file) GetTimer(uuid uuid.UUID) (types.Timer, error) {
 			return t, nil
 		}
 	}
-	return types.Timer{}, fmt.Errorf("no timer found for uuid %s", uuid.String())
-}
-
-func (f *file) GetRunningTimer() (types.Timer, error) {
-	for _, t := range f.timers {
-		if t.Stop.IsZero() {
-			return t, nil
-		}
-	}
-	return types.Timer{}, fmt.Errorf("no running timer found")
+	return types.Timer{}, fmt.Errorf("no timer found for uuid %s: %w", uuid.String(), types.ErrNotFound)
 }
 
 func (f *file) GetLastTimer(running bool) (types.Timer, error) {
-	return f.timers.Last(running), nil
+	t := f.timers.Last(running)
+	if t.IsZero() {
+		return types.Timer{}, fmt.Errorf("no timer found: %w", types.ErrNotFound)
+	}
+	return t, nil
 }
 
 func (f *file) GetTimers(filter types.Filter) (types.Timers, error) {
 	return f.timers.Filter(filter), nil
-}
-
-func (f *file) RunningTimerExists() (bool, error) {
-	for _, t := range f.timers {
-		if t.Running() {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func (f *file) StoreTimer(newTimer types.Timer) error {

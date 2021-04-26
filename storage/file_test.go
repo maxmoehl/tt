@@ -40,6 +40,7 @@ func setupFileTest() error {
 	if !ok {
 		return fmt.Errorf("expected storage to be of type *file")
 	}
+	testFile.timers = nil
 	return nil
 }
 
@@ -112,52 +113,6 @@ func TestFileGetTimerNoExist(t *testing.T) {
 	}
 }
 
-func TestFileGetRunningTimer(t *testing.T) {
-	err := setupFileTest()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	id := uuid.Must(uuid.NewRandom())
-	timerNew := types.Timer{
-		Uuid:    id,
-		Start:   time.Now(),
-		Project: "test",
-	}
-	// place two timers, the running timer and a completed one
-	testFile.timers = types.Timers{types.Timer{
-		Uuid:    uuid.Must(uuid.NewRandom()),
-		Start:   time.Now().Add(-time.Hour),
-		Stop:    time.Now().Add(-30 * time.Minute),
-		Project: "test",
-	}, timerNew}
-	timerStore, err := s.GetRunningTimer()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	err = timersEqual(timerNew, timerStore)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-}
-
-func TestFileGetRunningTimerNoExist(t *testing.T) {
-	err := setupFileTest()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	// place two timers, the running timer and a completed one
-	testFile.timers = types.Timers{types.Timer{
-		Uuid:    uuid.Must(uuid.NewRandom()),
-		Start:   time.Now().Add(-time.Hour),
-		Stop:    time.Now().Add(-30 * time.Minute),
-		Project: "test",
-	}}
-	_, err = s.GetRunningTimer()
-	if err == nil {
-		t.Fatal("expected error because of no running timer")
-	}
-}
-
 func TestFileGetLastTimer(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
@@ -221,39 +176,6 @@ func TestFileGetTimers(t *testing.T) {
 	}
 	if !reflect.DeepEqual(timers, timersStore) {
 		t.Fatal("expected both slices to be identical")
-	}
-}
-
-func TestFileRunningTimerExists(t *testing.T) {
-	err := setupFileTest()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	// place two timers, a running timer and a completed one
-	testFile.timers = types.Timers{types.Timer{
-		Uuid:    uuid.Must(uuid.NewRandom()),
-		Start:   time.Now().Add(-time.Hour),
-		Stop:    time.Now().Add(-30 * time.Minute),
-		Project: "test",
-	}}
-	runningTimerExists, err := s.RunningTimerExists()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if runningTimerExists {
-		t.Fatal("expected to find no running timer")
-	}
-	testFile.timers = append(testFile.timers, types.Timer{
-		Uuid:    uuid.Must(uuid.NewRandom()),
-		Start:   time.Now(),
-		Project: "test",
-	})
-	runningTimerExists, err = s.RunningTimerExists()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !runningTimerExists {
-		t.Fatal("expected to find running timer")
 	}
 }
 

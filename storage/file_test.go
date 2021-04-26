@@ -1,34 +1,67 @@
 package storage
 
 import (
-	"os"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/maxmoehl/tt/test"
 	"github.com/maxmoehl/tt/types"
 
 	"github.com/google/uuid"
 )
 
-func TestMain(m *testing.M) {
-	dir := setup()
-	defer teardown(dir)
+const fileConfig = `precision: m
+workHours: 8
+storageType: file
+workDays:
+  monday: true
+  tuesday: true
+  wednesday: true
+  thursday: true
+  friday: true
+  saturday: false
+  sunday: false`
 
-	err := reloadTestFile()
+var testFile *file
+
+func setupFileTest() error {
+	err := test.SetConfig(fileConfig)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+	err = initStorage()
+	if err != nil {
+		return err
+	}
+	var ok bool
+	testFile, ok = s.(*file)
+	if !ok {
+		return fmt.Errorf("expected storage to be of type *file")
+	}
+	return nil
+}
 
-	exitCode := m.Run()
-	if exitCode != 0 {
-		// os.Exit does not run deferred functions, therefore we run it manually
-		teardown(dir)
-		os.Exit(exitCode)
+func reloadTestFile() error {
+	var err error
+	s, err = NewFile()
+	if err != nil {
+		return err
 	}
+	var ok bool
+	testFile, ok = s.(*file)
+	if !ok {
+		return fmt.Errorf("expected storage to be of type *file")
+	}
+	return nil
 }
 
 func TestNewFile(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	s, err := NewFile()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -40,11 +73,15 @@ func TestNewFile(t *testing.T) {
 }
 
 func TestFileGetTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	id := uuid.Must(uuid.NewRandom())
 	timerNew := types.Timer{
 		Uuid:    id,
 		Start:   time.Now(),
-		End:     time.Now().Add(time.Hour),
+		Stop:    time.Now().Add(time.Hour),
 		Project: "test",
 	}
 	testFile.timers = types.Timers{timerNew}
@@ -59,19 +96,27 @@ func TestFileGetTimer(t *testing.T) {
 }
 
 func TestFileGetTimerNoExist(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
-		End:     time.Now().Add(time.Hour),
+		Stop:    time.Now().Add(time.Hour),
 		Project: "test",
 	}}
-	_, err := s.GetTimer(uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000000")))
+	_, err = s.GetTimer(uuid.Must(uuid.Parse("00000000-0000-0000-0000-000000000000")))
 	if err == nil {
 		t.Fatal("expected error because timer does not exist")
 	}
 }
 
 func TestFileGetRunningTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	id := uuid.Must(uuid.NewRandom())
 	timerNew := types.Timer{
 		Uuid:    id,
@@ -82,7 +127,7 @@ func TestFileGetRunningTimer(t *testing.T) {
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now().Add(-30 * time.Minute),
+		Stop:    time.Now().Add(-30 * time.Minute),
 		Project: "test",
 	}, timerNew}
 	timerStore, err := s.GetRunningTimer()
@@ -96,20 +141,28 @@ func TestFileGetRunningTimer(t *testing.T) {
 }
 
 func TestFileGetRunningTimerNoExist(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	// place two timers, the running timer and a completed one
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now().Add(-30 * time.Minute),
+		Stop:    time.Now().Add(-30 * time.Minute),
 		Project: "test",
 	}}
-	_, err := s.GetRunningTimer()
+	_, err = s.GetRunningTimer()
 	if err == nil {
 		t.Fatal("expected error because of no running timer")
 	}
 }
 
 func TestFileGetLastTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	id := uuid.Must(uuid.NewRandom())
 	timerNewRunning := types.Timer{
 		Uuid:    id,
@@ -119,7 +172,7 @@ func TestFileGetLastTimer(t *testing.T) {
 	timerNewNotRunning := types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now().Add(-30 * time.Minute),
+		Stop:    time.Now().Add(-30 * time.Minute),
 		Project: "test",
 	}
 	// place two timers, the running timer and a completed one
@@ -143,22 +196,26 @@ func TestFileGetLastTimer(t *testing.T) {
 }
 
 func TestFileGetTimers(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	timers := types.Timers{
 		types.Timer{
 			Uuid:    uuid.Must(uuid.NewRandom()),
 			Start:   time.Now().Add(-time.Hour),
-			End:     time.Now().Add(-30 * time.Minute),
+			Stop:    time.Now().Add(-30 * time.Minute),
 			Project: "test",
 		},
 		types.Timer{
 			Uuid:    uuid.Must(uuid.NewRandom()),
 			Start:   time.Now().Add(-20 * time.Minute),
-			End:     time.Now(),
+			Stop:    time.Now(),
 			Project: "test",
 		},
 	}
 	testFile.timers = timers
-	timersStore, err := s.GetTimers(nil)
+	timersStore, err := s.GetTimers(types.Filter{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -168,11 +225,15 @@ func TestFileGetTimers(t *testing.T) {
 }
 
 func TestFileRunningTimerExists(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	// place two timers, a running timer and a completed one
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now().Add(-30 * time.Minute),
+		Stop:    time.Now().Add(-30 * time.Minute),
 		Project: "test",
 	}}
 	runningTimerExists, err := s.RunningTimerExists()
@@ -197,6 +258,10 @@ func TestFileRunningTimerExists(t *testing.T) {
 }
 
 func TestFileUpdateTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	id := uuid.Must(uuid.NewRandom())
 	timer := types.Timer{
 		Uuid:    id,
@@ -204,8 +269,8 @@ func TestFileUpdateTimer(t *testing.T) {
 		Project: "test",
 	}
 	testFile.timers = types.Timers{timer}
-	timer.End = time.Now()
-	err := s.UpdateTimer(timer)
+	timer.Stop = time.Now()
+	err = s.UpdateTimer(timer)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -219,18 +284,22 @@ func TestFileUpdateTimer(t *testing.T) {
 }
 
 func TestFileStoreTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	// reset timer storage
 	testFile.timers = types.Timers{}
 	id := uuid.Must(uuid.NewRandom())
 	timerNew := types.Timer{
 		Uuid:    id,
 		Start:   time.Now(),
-		End:     time.Time{},
+		Stop:    time.Time{},
 		Project: "test",
 		Task:    "test",
 		Tags:    []string{"test"},
 	}
-	err := s.StoreTimer(timerNew)
+	err = s.StoreTimer(timerNew)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -244,6 +313,10 @@ func TestFileStoreTimer(t *testing.T) {
 }
 
 func TestFileStoreTimerNoDuplicate(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	id := uuid.Must(uuid.NewRandom())
 	// reset timer storage
 	testFile.timers = types.Timers{types.Timer{
@@ -253,7 +326,7 @@ func TestFileStoreTimerNoDuplicate(t *testing.T) {
 		Task:    "test",
 		Tags:    []string{"test"},
 	}}
-	err := s.StoreTimer(types.Timer{
+	err = s.StoreTimer(types.Timer{
 		Uuid:    id,
 		Start:   time.Now(),
 		Project: "test",
@@ -264,6 +337,10 @@ func TestFileStoreTimerNoDuplicate(t *testing.T) {
 }
 
 func TestFileWritesUpdate(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	// this test ensures that the update that is passed to the file gets
 	// written to disk and can be read again.
 	timer := types.Timer{
@@ -272,8 +349,8 @@ func TestFileWritesUpdate(t *testing.T) {
 		Project: "test",
 	}
 	testFile.timers = types.Timers{timer}
-	timer.End = time.Now()
-	err := s.UpdateTimer(timer)
+	timer.Stop = time.Now()
+	err = s.UpdateTimer(timer)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -291,16 +368,20 @@ func TestFileWritesUpdate(t *testing.T) {
 }
 
 func TestFileWritesStore(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
 	timer := types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now(),
+		Stop:    time.Now(),
 		Project: "test",
 		Task:    "test",
 		Tags:    []string{"a", "b"},
 	}
-	err := s.StoreTimer(timer)
+	err = s.StoreTimer(timer)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -24,6 +24,13 @@ import (
 var s types.Storage
 
 func init() {
+	err := initStorage()
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+func initStorage() error {
 	var err error
 	switch config.Get().StorageType {
 	case config.StorageTypeFile:
@@ -32,6 +39,7 @@ func init() {
 		s, err = NewSQLite()
 	}
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+	return nil
 }

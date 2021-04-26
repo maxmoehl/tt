@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	
+
 	"github.com/maxmoehl/tt/types"
 	"github.com/maxmoehl/tt/utils"
 
@@ -12,8 +12,12 @@ import (
 )
 
 func TestStartTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
-	err := StartTimer("test", "", "", nil)
+	_, err = StartTimer("test", "", "", nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -28,22 +32,30 @@ func TestStartTimer(t *testing.T) {
 }
 
 func TestStartTimerRunningTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
 	}}
-	err := StartTimer("test", "", "", nil)
+	_, err = StartTimer("test", "", "", nil)
 	if err == nil {
 		t.Fatal("expected error since a timer is already running")
 	}
 }
 
 func TestStartTimerValidTimestamp(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
 	// we have to round since .Format does not add fractions of seconds
 	startTime := time.Now().Round(time.Second)
-	err := StartTimer("test", "", startTime.Format(time.RFC3339), nil)
+	_, err = StartTimer("test", "", startTime.Format(time.RFC3339), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -58,54 +70,74 @@ func TestStartTimerValidTimestamp(t *testing.T) {
 }
 
 func TestStartTimerInvalidTimestamp(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
-	err := StartTimer("test", "", "invalid timestamp", nil)
+	_, err = StartTimer("test", "", "invalid timestamp", nil)
 	if err == nil {
 		t.Fatal("expected error because of invalid timestamp")
 	}
 }
 
 func TestStartTimerTimestampCollision(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now(),
+		Stop:    time.Now(),
 		Project: "test",
 	}}
-	err := StartTimer("test", "", time.Now().Add(-30*time.Minute).Format(time.RFC3339), nil)
+	_, err = StartTimer("test", "", time.Now().Add(-30*time.Minute).Format(time.RFC3339), nil)
 	if err == nil {
 		t.Fatal("expected error because of collision with existing timer")
 	}
 }
 
 func TestStopTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
 	}}
-	err := StopTimer("")
+	_, err = StopTimer("")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 }
 
 func TestStopTimerNoRunningTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
-	err := StopTimer("")
+	_, err = StopTimer("")
 	if err == nil {
 		t.Fatal("expected error because of no running timer")
 	}
 }
 
 func TestStopTimerValidTimestamp(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
 	}}
 	stopTime := time.Now().Round(time.Second)
-	err := StopTimer(stopTime.Format(time.RFC3339))
+	_, err = StopTimer(stopTime.Format(time.RFC3339))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -114,40 +146,52 @@ func TestStopTimerValidTimestamp(t *testing.T) {
 	}
 	timer := testFile.timers[0]
 	if timer.Project != "test" || timer.Task != "" || len(timer.Tags) != 0 ||
-		!timer.End.Equal(stopTime) {
+		!timer.Stop.Equal(stopTime) {
 		t.Fatal("timer does not match expectations")
 	}
 }
 
 func TestStopTimerInvalidTimestamp(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
 	}}
-	err := StopTimer("invalid timestamp")
+	_, err = StopTimer("invalid timestamp")
 	if err == nil {
 		t.Fatal("expected error because of invalid timestamp")
 	}
 }
 
 func TestStopTimerTimestampBeforeStart(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
 	}}
-	err := StopTimer(time.Now().Add(-time.Hour).Format(time.RFC3339))
+	_, err = StopTimer(time.Now().Add(-time.Hour).Format(time.RFC3339))
 	if err == nil {
 		t.Fatal("expected error because of stop time before start time")
 	}
 }
 
 func TestResumeTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
-		End:     time.Now(),
+		Stop:    time.Now(),
 		Project: "testA",
 		Task:    "testB",
 		Tags:    []string{"a", "b"},
@@ -173,37 +217,49 @@ func TestResumeTimer(t *testing.T) {
 }
 
 func TestResumeTimerNoTimerToResume(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = nil
-	_, err := ResumeTimer()
+	_, err = ResumeTimer()
 	if err == nil {
 		t.Fatal("expected error because there is no timer to resume")
 	}
 }
 
 func TestResumeTimerRunningTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
 	}}
-	_, err := ResumeTimer()
+	_, err = ResumeTimer()
 	if err == nil {
 		t.Fatal("expected error because there is a running timer")
 	}
 }
 
 func TestCheckRunningTimers(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	runningId := uuid.Must(uuid.NewRandom())
 	testFile.timers = types.Timers{
 		types.Timer{
 			Uuid:    uuid.Must(uuid.NewRandom()),
 			Start:   time.Now().Add(-time.Hour),
-			End:     time.Now().Add(-45*time.Minute),
+			Stop:    time.Now().Add(-45 * time.Minute),
 			Project: "test",
 		},
 		types.Timer{
 			Uuid:    runningId,
-			Start:   time.Now().Add(-30*time.Minute),
+			Start:   time.Now().Add(-30 * time.Minute),
 			Project: "test",
 		},
 	}
@@ -220,16 +276,20 @@ func TestCheckRunningTimers(t *testing.T) {
 }
 
 func TestGetRunningTimer(t *testing.T) {
+	err := setupFileTest()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
 	}}
-	running, timer, err := GetRunningTimer()
+	timer, err := GetRunningTimer()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !running {
+	if !timer.Running() {
 		t.Fatal("expected to get running timer")
 	}
 	if timer.Project != "test" ||
@@ -240,12 +300,13 @@ func TestGetRunningTimer(t *testing.T) {
 }
 
 func TestGetRunningTimerNoTimer(t *testing.T) {
-	testFile.timers = nil
-	running, _, err := GetRunningTimer()
+	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if running {
-		t.Fatal("did not expect running timer")
+	testFile.timers = nil
+	_, err = GetRunningTimer()
+	if err == nil {
+		t.Fatal("expected error because of no running timer")
 	}
 }

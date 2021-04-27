@@ -69,11 +69,16 @@ func (f *file) StoreTimer(newTimer types.Timer) error {
 }
 
 func (f *file) UpdateTimer(updatedTimer types.Timer) error {
+	updated := false
 	for i, t := range f.timers {
 		if t.Uuid == updatedTimer.Uuid {
 			f.timers[i].Stop = updatedTimer.Stop
+			updated = true
 			break
 		}
+	}
+	if !updated {
+		return fmt.Errorf("could not update timer: %w", types.ErrNotFound)
 	}
 	return f.write()
 }

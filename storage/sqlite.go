@@ -137,7 +137,7 @@ func (db *sqlite) UpdateTimer(timer types.Timer) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("timer does not exist")
+		return fmt.Errorf("timer does not exist: %w", types.ErrNotFound)
 	}
 	return nil
 }

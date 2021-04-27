@@ -9,6 +9,8 @@ import (
 
 var testDir string
 
+// Main is a helper function that can be used by tests to automatically
+// perform setup and teardown before and after the tests are run.
 func Main(run func() int) {
 	dir := setup()
 	defer teardown(dir)

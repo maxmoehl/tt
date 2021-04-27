@@ -70,12 +70,12 @@ func TestTimersRunning(t *testing.T) {
 func TestTimersFirst(t *testing.T) {
 	timer := Timers{
 		{
-			Start: time.Now().Add(-time.Hour),
-			Stop:  time.Now().Add(-30 * time.Minute),
+			Start:   time.Now().Add(-time.Hour),
+			Stop:    time.Now().Add(-30 * time.Minute),
 			Project: "a",
 		},
 		{
-			Start: time.Now(),
+			Start:   time.Now(),
 			Project: "b",
 		},
 	}.First()

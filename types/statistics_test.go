@@ -50,12 +50,12 @@ func ExampleStatisticPrintWithProjects() {
 		Percentage: float64(3) / 8,
 		ByProjects: []Project{
 			{
-				Name: "testA",
+				Name:   "testA",
 				Worked: time.Hour,
 			},
 			{
-				Name: "testB",
-				Worked: 2*time.Hour,
+				Name:   "testB",
+				Worked: 2 * time.Hour,
 			},
 		},
 	}.Print("")

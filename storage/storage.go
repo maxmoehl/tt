@@ -75,6 +75,8 @@ func StopTimer(timestamp string) (types.Timer, error) {
 	return runningTimer, s.UpdateTimer(runningTimer)
 }
 
+// ResumeTimer takes the last timer form the storage and copies project,
+// task and tags and starts a new timer.
 func ResumeTimer() (types.Timer, error) {
 	runningTimer, err := s.GetLastTimer(true)
 	if err != nil {

@@ -73,4 +73,3 @@ func getStopParameters(cmd *cobra.Command, args []string) (silent bool, timestam
 	}
 	return
 }
-

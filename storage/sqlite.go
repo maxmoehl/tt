@@ -12,6 +12,7 @@ import (
 	"github.com/maxmoehl/tt/types"
 
 	"github.com/google/uuid"
+	// import database driver
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -203,6 +204,9 @@ func (db *sqlite) scanRow(row scanable) (types.Timer, error) {
 	}, nil
 }
 
+// NewSQLite creates and initializes a new SQLite storage interface.
+// The connection is tested using sql.DB.Ping() and the timers table
+// is created if it does not exist.
 func NewSQLite() (types.Storage, error) {
 	storage := &sqlite{}
 	var err error

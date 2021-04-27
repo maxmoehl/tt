@@ -10,7 +10,7 @@ func ExamplePrintWarning() {
 	// redirect stderr to stdout
 	stderr := os.Stderr
 	os.Stderr = os.Stdout
-	defer func() {os.Stderr = stderr}()
+	defer func() { os.Stderr = stderr }()
 
 	PrintWarning("test")
 

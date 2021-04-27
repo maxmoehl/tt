@@ -28,9 +28,13 @@ import (
 )
 
 const (
+	// HomeDirEnv stores the name of the environment variable that
+	// contains the path to the home directory of this cli.
 	HomeDirEnv = "TT_HOME_DIR"
 
-	StorageTypeFile = "file"
+	// StorageTypeFile is the identifier for file storage configuration
+	StorageTypeFile   = "file"
+	// StorageTypeSQLite is the identifier for SQLite storage configuration
 	StorageTypeSQLite = "sqlite"
 )
 

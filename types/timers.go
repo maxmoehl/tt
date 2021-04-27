@@ -101,6 +101,7 @@ func (timers Timers) Filter(f Filter) (filtered Timers) {
 	return
 }
 
+// CSV exports all timers as a csv string
 func (timers Timers) CSV() (string, error) {
 	b := strings.Builder{}
 	w := csv.NewWriter(&b)
@@ -122,6 +123,8 @@ func (timers Timers) CSV() (string, error) {
 	return b.String(), nil
 }
 
+// SQL exports all timers as a sequence of SQL statements to insert the
+// data into another database.
 func (timers Timers) SQL() (string, error) {
 	b := strings.Builder{}
 	b.WriteString("CREATE TABLE IF NOT EXISTS timers (uuid TEXT PRIMARY KEY, start INTEGER NOT NULL, stop INTEGER, project TEXT NOT NULL, task TEXT, tags TEXT);\n")

@@ -17,10 +17,12 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/maxmoehl/tt/storage"
+	"github.com/maxmoehl/tt/types"
 	"github.com/maxmoehl/tt/utils"
 
 	"github.com/spf13/cobra"
@@ -45,6 +47,9 @@ func status(silent bool) {
 		return
 	}
 	runningTimers, err := storage.CheckRunningTimers()
+	if err != nil && !errors.Is(err, types.ErrNotFound) {
+		utils.PrintError(err, silent)
+	}
 	if len(runningTimers) == 0 {
 		fmt.Println("Currently not working. Enjoy your free time :)")
 		return

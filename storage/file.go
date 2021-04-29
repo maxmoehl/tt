@@ -50,10 +50,17 @@ func (f *file) GetLastTimer(running bool) (types.Timer, error) {
 }
 
 func (f *file) GetTimers(filter types.Filter) (types.Timers, error) {
-	return f.timers.Filter(filter), nil
+	timers := f.timers.Filter(filter)
+	if len(timers) == 0 {
+		return nil, fmt.Errorf("no timers found: %w", types.ErrNotFound)
+	}
+	return timers, nil
 }
 
 func (f *file) StoreTimer(newTimer types.Timer) error {
+	if newTimer.IsZero() {
+		return fmt.Errorf("timer is zero")
+	}
 	exists := false
 	for _, t := range f.timers {
 		if t.Uuid == newTimer.Uuid {

@@ -162,11 +162,13 @@ func parseValuesInto(key, values string, f *Filter) (err error) {
 			err = fmt.Errorf("redeclared filter since")
 		}
 		f.Since, err = time.Parse(utils.DateFormat, values)
+		f.Since = time.Date(f.Since.Year(), f.Since.Month(), f.Since.Day(), 0, 0, 0, 0, time.Local)
 	case filterUntil:
 		if !f.Until.IsZero() {
 			err = fmt.Errorf("redeclared filter until")
 		}
 		f.Until, err = time.Parse(utils.DateFormat, values)
+		f.Until = time.Date(f.Until.Year(), f.Until.Month(), f.Until.Day(), 0, 0, 0, 0, time.Local)
 	case filterTags:
 		if f.Tags != nil {
 			err = fmt.Errorf("redeclared filter tags")

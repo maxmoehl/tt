@@ -108,6 +108,9 @@ func (db *sqlite) StoreTimer(timer types.Timer) error {
 	insertStmt := `
 		INSERT INTO timers (uuid, start, stop, project, task, tags)
 		VALUES (?, ?, ?, ?, ?, ?);`
+	if timer.IsZero() {
+		return fmt.Errorf("timer is zero")
+	}
 	id := timer.Uuid.String()
 	start := timer.Start.Unix()
 	var stop, task, tags interface{}

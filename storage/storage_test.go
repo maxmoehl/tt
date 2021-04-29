@@ -16,6 +16,10 @@ func TestStartTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = nil
 	_, err = StartTimer("test", "", "", nil)
 	if err != nil {
@@ -36,6 +40,10 @@ func TestStartTimerRunningTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
@@ -51,6 +59,10 @@ func TestStartTimerValidTimestamp(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = nil
 	// we have to round since .Format does not add fractions of seconds
@@ -74,6 +86,10 @@ func TestStartTimerInvalidTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = nil
 	_, err = StartTimer("test", "", "invalid timestamp", nil)
 	if err == nil {
@@ -85,6 +101,10 @@ func TestStartTimerTimestampCollision(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
@@ -103,6 +123,10 @@ func TestStopTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
@@ -119,6 +143,10 @@ func TestStopTimerNoRunningTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = nil
 	_, err = StopTimer("")
 	if err == nil {
@@ -130,6 +158,10 @@ func TestStopTimerValidTimestamp(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
@@ -156,6 +188,10 @@ func TestStopTimerInvalidTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
@@ -172,6 +208,10 @@ func TestStopTimerTimestampBeforeStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
@@ -187,6 +227,10 @@ func TestResumeTimer(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
@@ -221,6 +265,10 @@ func TestResumeTimerNoTimerToResume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = nil
 	_, err = ResumeTimer()
 	if err == nil {
@@ -232,6 +280,10 @@ func TestResumeTimerRunningTimer(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
@@ -248,6 +300,10 @@ func TestCheckRunningTimers(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	runningId := uuid.Must(uuid.NewRandom())
 	testFile.timers = types.Timers{
@@ -280,6 +336,10 @@ func TestGetRunningTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
+	}
 	testFile.timers = types.Timers{types.Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
@@ -303,6 +363,10 @@ func TestGetRunningTimerNoTimer(t *testing.T) {
 	err := setupFileTest()
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	testFile, ok := s.(*file)
+	if !ok {
+		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = nil
 	_, err = GetRunningTimer()

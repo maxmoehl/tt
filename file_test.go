@@ -1,4 +1,4 @@
-package storage
+package tt
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/maxmoehl/tt/test"
-	"github.com/maxmoehl/tt/types"
 
 	"github.com/google/uuid"
 )
@@ -80,12 +79,12 @@ func TestFileWritesUpdate(t *testing.T) {
 	}
 	// this test ensures that the update that is passed to the file gets
 	// written to disk and can be read again.
-	timer := types.Timer{
+	timer := Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
 	}
-	testFile.timers = types.Timers{timer}
+	testFile.timers = Timers{timer}
 	timer.Stop = time.Now()
 	err = s.UpdateTimer(timer)
 	if err != nil {
@@ -114,7 +113,7 @@ func TestFileWritesStore(t *testing.T) {
 		t.Fatal("expected storage to be of type *file")
 	}
 	testFile.timers = nil
-	timer := types.Timer{
+	timer := Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Stop:    time.Now(),
@@ -136,5 +135,49 @@ func TestFileWritesStore(t *testing.T) {
 	err = timersEqual(timer, testFile.timers[0])
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestStringSliceContains(t *testing.T) {
+	type args struct {
+		strings []string
+		s       string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"string is inside slice",
+			args{
+				[]string{"test", "a", "b", "c"},
+				"a",
+			},
+			true,
+		},
+		{
+			"string is not inside slice",
+			args{
+				[]string{"test", "a", "b", "c"},
+				"d",
+			},
+			false,
+		},
+		{
+			"nil slice",
+			args{
+				nil,
+				"a",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := stringSliceContains(tt.args.strings, tt.args.s); got != tt.want {
+				t.Errorf("stringSliceContains() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

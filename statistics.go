@@ -14,22 +14,112 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package storage
+package tt
 
 import (
+	"fmt"
 	"math"
 	"time"
 
 	"github.com/maxmoehl/tt/config"
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
 )
+
+// DateFormat contains the format in which dates are printed.
+var DateFormat = "2006-01-02"
+
+// Statistic holds all values that are generated as part of the stats
+// command.
+type Statistic struct {
+	Worked     time.Duration `json:"worked"`
+	Planned    time.Duration `json:"planned"`
+	Difference time.Duration `json:"difference"`
+	Percentage float64       `json:"percentage"`
+	ByProjects []Project     `json:"by_projects,omitempty"`
+}
+
+// Print prints the Statistic struct to the console indenting everything
+// by the given indent and lower levels by multiples of the given indent.
+func (s Statistic) Print(indent string) {
+	precision := config.Get().GetPrecision()
+	f := FormatDuration
+	fmt.Printf("%sworked    : %s\n", indent, f(s.Worked, precision))
+	fmt.Printf("%splanned   : %s\n", indent, f(s.Planned, precision))
+	fmt.Printf("%sdifference: %s\n", indent, f(s.Difference, precision))
+	fmt.Printf("%spercentage: %.2f%%\n", indent, s.Percentage*100)
+	if len(s.ByProjects) > 0 {
+		fmt.Printf("%sby projects:\n", indent)
+		for _, p := range s.ByProjects {
+			p.Print(indent)
+		}
+	}
+}
+
+// Project is a part of Statistic and contains data for the stat command
+type Project struct {
+	Name    string        `json:"name"`
+	Worked  time.Duration `json:"worked"`
+	ByTasks []Task        `json:"by_tasks,omitempty"`
+}
+
+// Print prints an indented representation of Project and Tasks if ByTasks
+// contains at least one element.
+func (p Project) Print(indent string) {
+	precision := config.Get().GetPrecision()
+	fmt.Printf("%s  %s: %s\n", indent, p.Name, FormatDuration(p.Worked, precision))
+	if len(p.ByTasks) > 0 {
+		fmt.Printf("%s  by tasks:\n", indent)
+		for _, t := range p.ByTasks {
+			t.Print(indent)
+		}
+	}
+}
+
+// Task is a part of Statistic and contains data for the stat command
+type Task struct {
+	Name   string        `json:"name"`
+	Worked time.Duration `json:"worked"`
+}
+
+// Print prints an indented representation of Task
+func (t Task) Print(indent string) {
+	precision := config.Get().GetPrecision()
+	name := t.Name
+	if name == "" {
+		name = "without task"
+	}
+	fmt.Printf("%s    %s: %s\n", indent, name, FormatDuration(t.Worked, precision))
+}
+
+// FormatDuration formats a duration in the precision defined by the
+// config.
+func FormatDuration(d time.Duration, precision time.Duration) string {
+	h := d / time.Hour
+	m := (d - (h * time.Hour)) / time.Minute
+	s := (d - (h * time.Hour) - (m * time.Minute)) / time.Second
+	sign := ""
+	if d < 0 {
+		sign = "-"
+		h *= -1
+		m *= -1
+		s *= -1
+	}
+	switch precision {
+	case time.Second:
+		return fmt.Sprintf("%s%dh%dm%ds", sign, h, m, s)
+	case time.Minute:
+		return fmt.Sprintf("%s%dh%dm", sign, h, m)
+	case time.Hour:
+		return fmt.Sprintf("%s%dh", sign, h)
+	default:
+		return "unknown precision"
+	}
+}
 
 // GetTimeStatistics generates a types.Statistic struct for all timers
 // that match the filter. The data is grouped as defined by byTask and
 // byProject.
-func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic types.Statistic, err error) {
-	var timers types.Timers
+func GetTimeStatistics(byProject, byTask bool, filter Filter) (statistic Statistic, err error) {
+	var timers Timers
 	timers, err = s.GetTimers(filter)
 	if err != nil {
 		return
@@ -39,7 +129,7 @@ func GetTimeStatistics(byProject, byTask bool, filter types.Filter) (statistic t
 
 // GetTimeStatisticsByDay generates a similar report to GetTimeStatistics
 // but does the analysis on a daily basis.
-func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[string]types.Statistic, error) {
+func GetTimeStatisticsByDay(byProject, byTask bool, filter Filter) (map[string]Statistic, error) {
 	timers, err := s.GetTimers(filter)
 	if err != nil {
 		return nil, err
@@ -51,26 +141,26 @@ func GetTimeStatisticsByDay(byProject, byTask bool, filter types.Filter) (map[st
 	currentDay := time.Date(b.Year(), b.Month(), b.Day(), 0, 0, 0, 0, time.Local)
 	end := time.Date(e.Year(), e.Month(), e.Day()+1, 0, 0, 0, 0, time.Local)
 
-	statistics := make(map[string]types.Statistic)
+	statistics := make(map[string]Statistic)
 
 	for currentDay.Before(end) {
-		f := types.NewFilter(nil, nil, nil, currentDay, currentDay.Add(time.Hour*24))
-		statistic, err := getTimeStatisticsForTimers(timers.Filter(f), byProject, byTask)
+		f := NewFilter(nil, nil, nil, currentDay, currentDay.Add(time.Hour*24))
+		statistic, err := getTimeStatisticsForTimers(f.Timers(timers), byProject, byTask)
 		if err != nil {
 			return nil, err
 		}
-		statistics[currentDay.Format(utils.DateFormat)] = statistic
+		statistics[currentDay.Format(DateFormat)] = statistic
 
 		currentDay = currentDay.Add(time.Hour * 24)
 	}
 	return statistics, nil
 }
 
-func getTimeStatisticsForTimers(timers types.Timers, byProject, byTask bool) (statistic types.Statistic, err error) {
+func getTimeStatisticsForTimers(timers Timers, byProject, byTask bool) (statistic Statistic, err error) {
 	statistic.Worked = workTime(timers)
 	statistic.Planned, err = plannedTime(timers)
 	if err != nil {
-		return types.Statistic{}, err
+		return Statistic{}, err
 	}
 	statistic.Difference = statistic.Worked - statistic.Planned
 	statistic.Percentage = float64(statistic.Worked) / float64(statistic.Planned)
@@ -83,10 +173,10 @@ func getTimeStatisticsForTimers(timers types.Timers, byProject, byTask bool) (st
 	return
 }
 
-func getTimeByProjects(timers types.Timers, byTasks bool) (projects []types.Project) {
+func getTimeByProjects(timers Timers, byTasks bool) (projects []Project) {
 	projectsMap := getTimersByProjects(timers)
 	for name, timers := range projectsMap {
-		p := types.Project{
+		p := Project{
 			Name:   name,
 			Worked: workTime(timers),
 		}
@@ -98,10 +188,10 @@ func getTimeByProjects(timers types.Timers, byTasks bool) (projects []types.Proj
 	return
 }
 
-func getTimeByTasks(timers types.Timers) (tasks []types.Task) {
+func getTimeByTasks(timers Timers) (tasks []Task) {
 	tasksMap := getTimersByTasks(timers)
 	for name, timers := range tasksMap {
-		tasks = append(tasks, types.Task{
+		tasks = append(tasks, Task{
 			Name:   name,
 			Worked: workTime(timers),
 		})
@@ -109,31 +199,31 @@ func getTimeByTasks(timers types.Timers) (tasks []types.Task) {
 	return
 }
 
-func getTimersByProjects(timers types.Timers) map[string]types.Timers {
-	res := make(map[string]types.Timers)
+func getTimersByProjects(timers Timers) map[string]Timers {
+	res := make(map[string]Timers)
 	for _, t := range timers {
 		if _, ok := res[t.Project]; ok {
 			res[t.Project] = append(res[t.Project], t)
 		} else {
-			res[t.Project] = types.Timers{t}
+			res[t.Project] = Timers{t}
 		}
 	}
 	return res
 }
 
-func getTimersByTasks(timers types.Timers) map[string]types.Timers {
-	res := make(map[string]types.Timers)
+func getTimersByTasks(timers Timers) map[string]Timers {
+	res := make(map[string]Timers)
 	for _, t := range timers {
 		if _, ok := res[t.Task]; ok {
 			res[t.Task] = append(res[t.Task], t)
 		} else {
-			res[t.Task] = types.Timers{t}
+			res[t.Task] = Timers{t}
 		}
 	}
 	return res
 }
 
-func workTime(timers types.Timers) (d time.Duration) {
+func workTime(timers Timers) (d time.Duration) {
 	for _, t := range timers {
 		if t.Running() {
 			continue
@@ -143,7 +233,7 @@ func workTime(timers types.Timers) (d time.Duration) {
 	return
 }
 
-func plannedTime(timers types.Timers) (time.Duration, error) {
+func plannedTime(timers Timers) (time.Duration, error) {
 	if len(timers) == 0 {
 		return 0, nil
 	}

@@ -1,28 +1,10 @@
-/*
-Copyright © 2021 Maximilian Moehl contact@moehl.eu
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package cmd
+package main
 
 import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/maxmoehl/tt/storage"
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
+	"github.com/maxmoehl/tt"
 
 	"github.com/spf13/cobra"
 )
@@ -50,15 +32,15 @@ func getExportParameters(cmd *cobra.Command, args []string) (silent bool, filter
 	var err error
 	silent = getSilent(cmd)
 	if len(args) != 1 {
-		utils.PrintError(fmt.Errorf("expected one argument"), silent)
+		PrintError(fmt.Errorf("expected one argument"), silent)
 	}
 	exportFormat = args[0]
 	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON && exportFormat != exportFormatSQL {
-		utils.PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
+		PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
 	}
 	filter, err = cmd.LocalFlags().GetString(flagFilter)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	return
 }
@@ -67,13 +49,13 @@ func export(silent bool, filterString, exportFormat string) {
 	if silent {
 		return
 	}
-	filter, err := types.GetFilter(filterString)
+	filter, err := tt.ParseFilterString(filterString)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
-	timers, err := storage.GetTimers(filter)
+	timers, err := tt.GetTimers(filter)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	var out string
 	switch exportFormat {
@@ -87,7 +69,7 @@ func export(silent bool, filterString, exportFormat string) {
 		out, err = timers.SQL()
 	}
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	fmt.Println(out)
 }

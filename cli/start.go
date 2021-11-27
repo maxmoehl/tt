@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/maxmoehl/tt/storage"
-	"github.com/maxmoehl/tt/utils"
+	"github.com/maxmoehl/tt"
 
 	"github.com/spf13/cobra"
 )
@@ -68,9 +67,9 @@ func start(silent bool, project, task, timestamp, tagsString string) {
 	if tagsString != "" {
 		tags = strings.Split(tagsString, ",")
 	}
-	timer, err := storage.StartTimer(project, task, timestamp, tags)
+	timer, err := tt.StartTimer(project, task, timestamp, tags)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	if !silent {
 		fmt.Printf("[%02d:%02d] Work tracking started!\n", timer.Start.Hour(), timer.Start.Minute())
@@ -89,18 +88,18 @@ func getStartParameters(cmd *cobra.Command, args []string) (silent bool, project
 	silent = getSilent(cmd)
 	task, err = cmd.LocalFlags().GetString(flagTask)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	timestamp, err = cmd.LocalFlags().GetString(flagTimestamp)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	tags, err = cmd.LocalFlags().GetString(flagTags)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	if len(args) != 1 {
-		utils.PrintError(fmt.Errorf("this command needs exactly one argument"), silent)
+		PrintError(fmt.Errorf("this command needs exactly one argument"), silent)
 	}
 	project = args[0]
 	return

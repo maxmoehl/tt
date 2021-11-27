@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package storage
+package tt
 
 import (
 	"github.com/maxmoehl/tt/config"
-	"github.com/maxmoehl/tt/types"
 )
 
-var s types.Storage
+var s Storage
 
 func init() {
 	err := initStorage()

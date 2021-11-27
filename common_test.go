@@ -1,4 +1,4 @@
-package storage
+package tt
 
 import (
 	"database/sql"
@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/maxmoehl/tt/test"
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
+
+	"github.com/google/uuid"
 )
 
 func TestMain(m *testing.M) {
@@ -30,7 +29,7 @@ func clearStorage() error {
 	return err
 }
 
-func writeTimersToStorage(timers types.Timers) (err error) {
+func writeTimersToStorage(timers Timers) (err error) {
 	for _, t := range timers {
 		err = writeTimerToStorage(t)
 		if err != nil {
@@ -40,7 +39,7 @@ func writeTimersToStorage(timers types.Timers) (err error) {
 	return
 }
 
-func writeTimerToStorage(timer types.Timer) error {
+func writeTimerToStorage(timer Timer) error {
 	var err error
 	if fileStorage, ok := s.(*file); ok {
 		fileStorage.timers = append(fileStorage.timers, timer)
@@ -66,7 +65,7 @@ func writeTimerToStorage(timer types.Timer) error {
 	return err
 }
 
-func storageContainsTimer(timer types.Timer) (bool, error) {
+func storageContainsTimer(timer Timer) (bool, error) {
 	if fileStorage, ok := s.(*file); ok {
 		found := false
 		for _, timerStorage := range fileStorage.timers {
@@ -85,8 +84,8 @@ func storageContainsTimer(timer types.Timer) (bool, error) {
 			}
 			return false, err
 		}
-		err = timersEqual(timer, timerStorage)
-		return err == nil, nil
+		e := timersEqual(timer, timerStorage)
+		return e == nil, nil
 	} else {
 		return false, fmt.Errorf("unknown storage type: %T", s)
 	}
@@ -95,7 +94,7 @@ func storageContainsTimer(timer types.Timer) (bool, error) {
 // getRandomTimers returns n randomly created timers. The timers are
 // guaranteed not to collide with each other and be finished. The first
 // timer returned is the most recent.
-func getRandomTimers(n int) (timers types.Timers) {
+func getRandomTimers(n int) (timers Timers) {
 	/*
 		i | start time     | stop time
 		0 | now - 1h + 10m | now - 0h - 10m
@@ -106,7 +105,7 @@ func getRandomTimers(n int) (timers types.Timers) {
 	for i := 0; i < n; i++ {
 		start := time.Now().Add(-time.Duration(i+1)*time.Hour + 10*time.Minute)
 		stop := time.Now().Add(-time.Duration(i)*time.Hour + (-10 * time.Minute))
-		timers = append(timers, types.Timer{
+		timers = append(timers, Timer{
 			Uuid:    uuid.Must(uuid.NewRandom()),
 			Start:   start,
 			Stop:    stop,
@@ -118,7 +117,7 @@ func getRandomTimers(n int) (timers types.Timers) {
 	return
 }
 
-func timersEqual(t1, t2 types.Timer) error {
+func timersEqual(t1, t2 Timer) error {
 	if t1.Uuid != t2.Uuid {
 		return fmt.Errorf("uuids are not equal")
 	}
@@ -132,7 +131,7 @@ func timersEqual(t1, t2 types.Timer) error {
 		return fmt.Errorf("tags are not equal")
 	}
 	for _, tag := range t1.Tags {
-		if !utils.StringSliceContains(t2.Tags, tag) {
+		if !stringSliceContains(t2.Tags, tag) {
 			return fmt.Errorf("tags are not equal")
 		}
 	}

@@ -50,7 +50,7 @@ func SetConfig(configFile string) error {
 	if err != nil {
 		return err
 	}
-	err = config.LoadConfig()
+	err = config.Load()
 	if err != nil {
 		return err
 	}

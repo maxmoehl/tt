@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/maxmoehl/tt/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -83,13 +82,6 @@ func (c Config) GetPrecision() time.Duration {
 	}
 }
 
-func init() {
-	err := LoadConfig()
-	if err != nil {
-		utils.PrintError(err, false)
-	}
-}
-
 // Get returns the current Config
 func Get() Config {
 	return c
@@ -105,8 +97,8 @@ func HomeDir() string {
 	return ttHomeDir
 }
 
-// LoadConfig allows to manually reload the configuration file.
-func LoadConfig() error {
+// Load allows to manually load the configuration file.
+func Load() error {
 	ttHomeDir := HomeDir()
 	file, err := os.Open(filepath.Join(ttHomeDir, "config.yaml"))
 	if err != nil {

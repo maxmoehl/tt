@@ -1,4 +1,4 @@
-package storage
+package tt
 
 import (
 	"errors"
@@ -6,8 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/maxmoehl/tt/types"
 )
+
+func TestTest(t *testing.T) {
+	var f Filter
+	f.Match(Timer{})
+}
 
 func TestStorageInterface(t *testing.T) {
 	storageTypes := map[string]func() error{
@@ -73,22 +77,25 @@ func TestStorageInterface(t *testing.T) {
 }
 
 func GetTimerNotFound(t *testing.T) {
-	err := writeTimerToStorage(types.Timer{
+	err := writeTimerToStorage(Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
 	})
+	if err != nil {
+		t.Fatalf("unable to write test timer: %s", err.Error())
+	}
 	_, err = s.GetTimer(uuid.Must(uuid.NewRandom()))
 	if err == nil {
 		t.Fatal("expected error because of missing timer")
 	}
-	if !errors.Is(err, types.ErrNotFound) {
-		t.Fatal("expected error to wrap types.ErrNotFound")
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatal("expected error to wrap ErrNotFound")
 	}
 }
 
 func GetTimersExist(t *testing.T) {
-	timer := types.Timer{
+	timer := Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Stop:    time.Now(),
@@ -202,7 +209,7 @@ func GetLastTimerTrueNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because of missing timer")
 	}
-	if !errors.Is(err, types.ErrNotFound) {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal("expected error to wrap types.ErrNotFound")
 	}
 }
@@ -212,7 +219,7 @@ func GetLastTimerFalseNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because of missing timer")
 	}
-	if !errors.Is(err, types.ErrNotFound) {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal("expected error to wrap types.ErrNotFound")
 	}
 }
@@ -228,18 +235,18 @@ func GetLastTimerFalseNotFoundWithRunning(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because of missing timer")
 	}
-	if !errors.Is(err, types.ErrNotFound) {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal("expected error to wrap types.ErrNotFound")
 	}
 }
 
 func GetTimersNotFound(t *testing.T) {
-	_, err := s.GetTimers(types.Filter{})
-	if err == nil {
-		t.Fatal("expected error because of non existent timers")
+	timers, err := s.GetTimers(Filter{})
+	if err != nil {
+		t.Fatal(err.Error())
 	}
-	if !errors.Is(err, types.ErrNotFound) {
-		t.Fatal("expected error to wrap types.ErrNotFound")
+	if len(timers) != 0 {
+		t.Fatalf("expected to get 0 timers but got %d", len(timers))
 	}
 }
 
@@ -249,7 +256,7 @@ func GetTimersNoFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	timersStorage, err := s.GetTimers(types.Filter{})
+	timersStorage, err := s.GetTimers(Filter{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -270,8 +277,8 @@ func StoreTimer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	exists, err := storageContainsTimer(timer)
-	if err != nil {
+	exists, e := storageContainsTimer(timer)
+	if e != nil {
 		t.Fatal(err.Error())
 	}
 	if !exists {
@@ -280,7 +287,7 @@ func StoreTimer(t *testing.T) {
 }
 
 func StoreTimerZeroTimer(t *testing.T) {
-	err := s.StoreTimer(types.Timer{})
+	err := s.StoreTimer(Timer{})
 	if err == nil {
 		t.Fatal("expected error because of zero timer")
 	}
@@ -303,7 +310,7 @@ func UpdateTimerNotExist(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because of non existent timer")
 	}
-	if !errors.Is(err, types.ErrNotFound) {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatal("expected error to wrap types.ErrNotFound")
 	}
 }

@@ -1,12 +1,9 @@
-package storage
+package tt
 
 import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
 
 	"github.com/google/uuid"
 )
@@ -44,7 +41,7 @@ func TestStartTimerRunningTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
@@ -106,7 +103,7 @@ func TestStartTimerTimestampCollision(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Stop:    time.Now(),
@@ -127,7 +124,7 @@ func TestStopTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
@@ -163,7 +160,7 @@ func TestStopTimerValidTimestamp(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
@@ -192,7 +189,7 @@ func TestStopTimerInvalidTimestamp(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Project: "test",
@@ -212,7 +209,7 @@ func TestStopTimerTimestampBeforeStart(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
@@ -232,7 +229,7 @@ func TestResumeTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now().Add(-time.Hour),
 		Stop:    time.Now(),
@@ -254,8 +251,8 @@ func TestResumeTimer(t *testing.T) {
 	if timerResume.Project != "testA" ||
 		timerResume.Task != "testB" ||
 		len(timerResume.Tags) != 2 ||
-		!utils.StringSliceContains(timerResume.Tags, "a") ||
-		!utils.StringSliceContains(timerResume.Tags, "b") {
+		!stringSliceContains(timerResume.Tags, "a") ||
+		!stringSliceContains(timerResume.Tags, "b") {
 		t.Fatal("expected properties to be copied but found different values")
 	}
 }
@@ -285,7 +282,7 @@ func TestResumeTimerRunningTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",
@@ -306,14 +303,14 @@ func TestCheckRunningTimers(t *testing.T) {
 		t.Fatal("expected storage to be of type *file")
 	}
 	runningId := uuid.Must(uuid.NewRandom())
-	testFile.timers = types.Timers{
-		types.Timer{
+	testFile.timers = Timers{
+		Timer{
 			Uuid:    uuid.Must(uuid.NewRandom()),
 			Start:   time.Now().Add(-time.Hour),
 			Stop:    time.Now().Add(-45 * time.Minute),
 			Project: "test",
 		},
-		types.Timer{
+		Timer{
 			Uuid:    runningId,
 			Start:   time.Now().Add(-30 * time.Minute),
 			Project: "test",
@@ -340,7 +337,7 @@ func TestGetRunningTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("expected storage to be of type *file")
 	}
-	testFile.timers = types.Timers{types.Timer{
+	testFile.timers = Timers{Timer{
 		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   time.Now(),
 		Project: "test",

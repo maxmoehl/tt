@@ -14,16 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package main
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/maxmoehl/tt/storage"
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
+	"github.com/maxmoehl/tt"
 
 	"github.com/spf13/cobra"
 )
@@ -46,17 +44,17 @@ func status(silent bool) {
 	if silent {
 		return
 	}
-	runningTimers, err := storage.CheckRunningTimers()
-	if err != nil && !errors.Is(err, types.ErrNotFound) {
-		utils.PrintError(err, silent)
+	runningTimers, err := tt.CheckRunningTimers()
+	if err != nil && !errors.Is(err, tt.ErrNotFound) {
+		PrintError(err, silent)
 	}
 	if len(runningTimers) == 0 {
 		fmt.Println("Currently not working. Enjoy your free time :)")
 		return
 	}
-	timer, err := storage.GetRunningTimer()
+	timer, err := tt.GetRunningTimer()
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	timingFor := time.Now().Sub(timer.Start).Round(time.Second).String()
 	if timer.Task != "" {
@@ -69,7 +67,7 @@ func status(silent bool) {
 func getStatusParameters(cmd *cobra.Command, args []string) (silent bool) {
 	silent = getSilent(cmd)
 	if len(args) != 0 && !silent {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+		PrintWarning(WarningNoArgumentsAccepted)
 	}
 	return
 }

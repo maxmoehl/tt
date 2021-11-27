@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package types
+package tt
 
 import (
 	"encoding/csv"
@@ -42,7 +42,7 @@ func (t Timer) Duration() time.Duration {
 	return t.Stop.Sub(t.Start)
 }
 
-// Running indicates whether or not the timer is still running.
+// Running indicates whether the timer is still running.
 func (t Timer) Running() bool {
 	return t.Stop.IsZero()
 }
@@ -85,17 +85,6 @@ func (timers Timers) First() (t Timer) {
 	for _, timer := range timers {
 		if timer.Start.Before(t.Start) || t.Start.IsZero() {
 			t = timer
-		}
-	}
-	return
-}
-
-// Filter applies the given Filter to every element and returns those that
-// match the Filter.
-func (timers Timers) Filter(f Filter) (filtered Timers) {
-	for _, t := range timers {
-		if f.Match(t) {
-			filtered = append(filtered, t)
 		}
 	}
 	return

@@ -1,4 +1,4 @@
-package types
+package tt
 
 import (
 	"reflect"
@@ -17,11 +17,11 @@ func TestGetFilter(t *testing.T) {
 			"test filter projects",
 			"project=a,b,c",
 			Filter{
-				Project: []string{"a", "b", "c"},
-				Task:    nil,
-				Since:   time.Time{},
-				Until:   time.Time{},
-				Tags:    nil,
+				project: []string{"a", "b", "c"},
+				task:    nil,
+				since:   time.Time{},
+				until:   time.Time{},
+				tags:    nil,
 			},
 			false,
 		},
@@ -29,11 +29,11 @@ func TestGetFilter(t *testing.T) {
 			"test filter tasks",
 			"task=x,y,z",
 			Filter{
-				Project: nil,
-				Task:    []string{"x", "y", "z"},
-				Since:   time.Time{},
-				Until:   time.Time{},
-				Tags:    nil,
+				project: nil,
+				task:    []string{"x", "y", "z"},
+				since:   time.Time{},
+				until:   time.Time{},
+				tags:    nil,
 			},
 			false,
 		},
@@ -41,11 +41,11 @@ func TestGetFilter(t *testing.T) {
 			"test filter tags",
 			"tags=l,m,n",
 			Filter{
-				Project: nil,
-				Task:    nil,
-				Since:   time.Time{},
-				Until:   time.Time{},
-				Tags:    []string{"l", "m", "n"},
+				project: nil,
+				task:    nil,
+				since:   time.Time{},
+				until:   time.Time{},
+				tags:    []string{"l", "m", "n"},
 			},
 			false,
 		},
@@ -53,11 +53,11 @@ func TestGetFilter(t *testing.T) {
 			"test filter since",
 			"since=2021-05-21",
 			Filter{
-				Project: nil,
-				Task:    nil,
-				Since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.Local),
-				Until:   time.Time{},
-				Tags:    nil,
+				project: nil,
+				task:    nil,
+				since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.Local),
+				until:   time.Time{},
+				tags:    nil,
 			},
 			false,
 		},
@@ -65,11 +65,11 @@ func TestGetFilter(t *testing.T) {
 			"test filter until",
 			"until=2021-06-21",
 			Filter{
-				Project: nil,
-				Task:    nil,
-				Since:   time.Time{},
-				Until:   time.Date(2021, 6, 22, 0, 0, 0, 0, time.Local),
-				Tags:    nil,
+				project: nil,
+				task:    nil,
+				since:   time.Time{},
+				until:   time.Date(2021, 6, 22, 0, 0, 0, 0, time.Local),
+				tags:    nil,
 			},
 			false,
 		},
@@ -77,18 +77,18 @@ func TestGetFilter(t *testing.T) {
 			"test multiple filters",
 			"project=a,b;task=x",
 			Filter{
-				Project: []string{"a", "b"},
-				Task:    []string{"x"},
-				Since:   time.Time{},
-				Until:   time.Time{},
-				Tags:    nil,
+				project: []string{"a", "b"},
+				task:    []string{"x"},
+				since:   time.Time{},
+				until:   time.Time{},
+				tags:    nil,
 			},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetFilter(tt.filterString)
+			got, err := ParseFilterString(tt.filterString)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetFilter() error = %v, wantErr %v", err, tt.wantErr)
 				return

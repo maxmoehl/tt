@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package main
 
 import (
 	"encoding/json"
@@ -23,9 +23,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/maxmoehl/tt/storage"
-	"github.com/maxmoehl/tt/types"
-	"github.com/maxmoehl/tt/utils"
+	"github.com/maxmoehl/tt"
 
 	"github.com/spf13/cobra"
 )
@@ -103,33 +101,33 @@ func stats(silent, jsonFlag bool, groupBy, filterString string) {
 	if silent {
 		return
 	}
-	filter, err := types.GetFilter(filterString)
+	filter, err := tt.ParseFilterString(filterString)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	if byDay {
-		statistics, err := storage.GetTimeStatisticsByDay(byProject, byTask, filter)
+		statistics, err := tt.GetTimeStatisticsByDay(byProject, byTask, filter)
 		if err != nil {
-			utils.PrintError(err, silent)
+			PrintError(err, silent)
 		}
 		printStatsStatistics(statistics, jsonFlag)
 		if !jsonFlag {
-			statistic, err := storage.GetTimeStatistics(false, false, filter)
+			statistic, err := tt.GetTimeStatistics(false, false, filter)
 			if err != nil {
-				utils.PrintError(err, silent)
+				PrintError(err, silent)
 			}
 			fmt.Println("Summary:")
 			statistic.Print("  ")
 		}
 	} else {
-		statistic, err := storage.GetTimeStatistics(byProject, byTask, filter)
+		statistic, err := tt.GetTimeStatistics(byProject, byTask, filter)
 		if err != nil {
-			utils.PrintError(err, silent)
+			PrintError(err, silent)
 		}
 		if jsonFlag {
 			err = json.NewEncoder(os.Stdout).Encode(statistic)
 			if err != nil {
-				utils.PrintError(err, false)
+				PrintError(err, false)
 			}
 		} else {
 			statistic.Print("")
@@ -137,13 +135,13 @@ func stats(silent, jsonFlag bool, groupBy, filterString string) {
 	}
 }
 
-func printStatsStatistics(statistics map[string]types.Statistic, j bool) {
+func printStatsStatistics(statistics map[string]tt.Statistic, j bool) {
 	var dates []string
 
 	if j {
 		err := json.NewEncoder(os.Stdout).Encode(statistics)
 		if err != nil {
-			utils.PrintError(err, false)
+			PrintError(err, false)
 		}
 		return
 	}
@@ -166,18 +164,18 @@ func getStatsParameters(cmd *cobra.Command, args []string) (silent, jsonFlag boo
 	silent = getSilent(cmd)
 	jsonFlag, err = cmd.LocalFlags().GetBool(flagJSON)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	groupBy, err = cmd.LocalFlags().GetString(flagGroupBy)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	filter, err = cmd.LocalFlags().GetString(flagFilter)
 	if err != nil {
-		utils.PrintError(err, silent)
+		PrintError(err, silent)
 	}
 	if len(args) != 0 {
-		utils.PrintWarning(utils.WarningNoArgumentsAccepted)
+		PrintWarning(WarningNoArgumentsAccepted)
 	}
 	return
 }

@@ -1,9 +1,11 @@
-package utils
+package main
 
 import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/maxmoehl/tt"
 )
 
 func ExamplePrintWarning() {
@@ -16,50 +18,6 @@ func ExamplePrintWarning() {
 
 	// Output:
 	// Warning: test
-}
-
-func TestStringSliceContains(t *testing.T) {
-	type args struct {
-		strings []string
-		s       string
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			"string is inside slice",
-			args{
-				[]string{"test", "a", "b", "c"},
-				"a",
-			},
-			true,
-		},
-		{
-			"string is not inside slice",
-			args{
-				[]string{"test", "a", "b", "c"},
-				"d",
-			},
-			false,
-		},
-		{
-			"nil slice",
-			args{
-				nil,
-				"a",
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := StringSliceContains(tt.args.strings, tt.args.s); got != tt.want {
-				t.Errorf("StringSliceContains() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestFormatDuration(t *testing.T) {
@@ -113,10 +71,10 @@ func TestFormatDuration(t *testing.T) {
 			"unknown precision",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := FormatDuration(tt.args.d, tt.args.precision); got != tt.want {
-				t.Errorf("FormatDuration() = %v, want %v", got, tt.want)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := tt.FormatDuration(test.args.d, test.args.precision); got != test.want {
+				t.Errorf("FormatDuration() = %v, want %v", got, test.want)
 			}
 		})
 	}

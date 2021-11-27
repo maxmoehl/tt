@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package main
 
 import (
-	"github.com/maxmoehl/tt/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -42,15 +41,14 @@ func init() {
 	rootCmd.PersistentFlags().BoolP(flagSilent, string(flagSilent[0]), false, "Suppress all output")
 }
 
-// Execute is the main entry point for the cli.
-func Execute() {
+func main() {
 	cobra.CheckErr(rootCmd.Execute())
 }
 
 func getSilent(cmd *cobra.Command) bool {
 	silent, err := cmd.Flags().GetBool("silent")
 	if err != nil {
-		utils.PrintError(err, false)
+		PrintError(err, false)
 	}
 	return silent
 }

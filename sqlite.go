@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/maxmoehl/tt/config"
@@ -20,9 +21,12 @@ type scanable interface {
 
 type sqlite struct {
 	db *sql.DB
+	m sync.RWMutex
 }
 
 func (db *sqlite) GetTimer(uuid uuid.UUID) (Timer, Error) {
+	db.m.RLock()
+	defer db.m.RUnlock()
 	selectStmt := `
 		SELECT *
 		FROM timers
@@ -36,6 +40,8 @@ func (db *sqlite) GetTimer(uuid uuid.UUID) (Timer, Error) {
 }
 
 func (db *sqlite) GetLastTimer(running bool) (Timer, Error) {
+	db.m.RLock()
+	defer db.m.RUnlock()
 	selectStmt := `
 		SELECT *
 		FROM timers
@@ -67,6 +73,8 @@ func (db *sqlite) GetLastTimer(running bool) (Timer, Error) {
 }
 
 func (db *sqlite) GetTimers(filter Filter) (Timers, Error) {
+	db.m.RLock()
+	defer db.m.RUnlock()
 	selectStmt := fmt.Sprintf(`
 		SELECT *
 		FROM timers
@@ -95,6 +103,8 @@ func (db *sqlite) GetTimers(filter Filter) (Timers, Error) {
 }
 
 func (db *sqlite) StoreTimer(timer Timer) Error {
+	db.m.Lock()
+	defer db.m.Unlock()
 	insertStmt := `
 		INSERT INTO timers (uuid, start, stop, project, task, tags)
 		VALUES (?, ?, ?, ?, ?, ?);`
@@ -121,6 +131,8 @@ func (db *sqlite) StoreTimer(timer Timer) Error {
 }
 
 func (db *sqlite) UpdateTimer(timer Timer) Error {
+	db.m.Lock()
+	defer db.m.Unlock()
 	updateStmt := `
 		UPDATE timers
 		SET stop = ?
@@ -140,6 +152,8 @@ func (db *sqlite) UpdateTimer(timer Timer) Error {
 }
 
 func (db *sqlite) create() Error {
+	db.m.Lock()
+	defer db.m.Unlock()
 	createStmt := `
 		CREATE TABLE IF NOT EXISTS
 			timers
@@ -210,7 +224,7 @@ func (db *sqlite) scanRow(row scanable) (Timer, Error) {
 // The connection is tested using sql.DB.Ping() and the timers table
 // is created if it does not exist.
 func NewSQLite() (Storage, Error) {
-	storage := &sqlite{}
+	storage := &sqlite{m: sync.RWMutex{}}
 	var e error
 	storage.db, e = sql.Open("sqlite3", filepath.Join(config.HomeDir(), "storage.db"))
 	if e != nil {

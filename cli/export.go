@@ -16,7 +16,7 @@ const (
 )
 
 var exportCmd = &cobra.Command{
-	Use:   "export format",
+	Use:   "export <format>",
 	Short: "Export data to a given format",
 	Run: func(cmd *cobra.Command, args []string) {
 		export(getExportParameters(cmd, args))

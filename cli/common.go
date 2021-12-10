@@ -10,7 +10,8 @@ import (
 
 const (
 	// WarningNoArgumentsAccepted is a common warning for commands.
-	WarningNoArgumentsAccepted = "this command does not accept any arguments"
+	WarningNoArgumentsAccepted      = "this command does not accept any arguments"
+	WarningNArgumentsAcceptedFormat = "this command accepts exactly %d arguments, but got %d"
 )
 
 var (

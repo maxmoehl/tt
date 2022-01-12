@@ -2,8 +2,6 @@ package tt
 
 import (
 	"testing"
-
-	"github.com/maxmoehl/tt/test"
 )
 
 const sqliteConfig = `precision: m
@@ -19,11 +17,11 @@ workDays:
   sunday: false`
 
 func setupSqliteTest() error {
-	err := test.SetConfig(sqliteConfig)
+	err := SetConfig(sqliteConfig)
 	if err != nil {
 		return err
 	}
-	err = initStorage()
+	err = InitStorage()
 	if err != nil {
 		return err
 	}
@@ -35,7 +33,7 @@ func TestNewSQLite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	s, err := NewSQLite()
+	s, err := NewSQLite(GetConfig())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

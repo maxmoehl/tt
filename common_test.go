@@ -8,13 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/maxmoehl/tt/test"
-
 	"github.com/google/uuid"
 )
 
 func TestMain(m *testing.M) {
-	test.Main(m.Run)
+	Main(m.Run)
 }
 
 func clearStorage() error {

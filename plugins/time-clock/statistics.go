@@ -1,15 +1,12 @@
-package tt
+package time_clock
 
 import (
 	"fmt"
 	"math"
 	"time"
 
-	"github.com/maxmoehl/tt/config"
+	"github.com/maxmoehl/tt"
 )
-
-// DateFormat contains the format in which dates are printed.
-var DateFormat = "2006-01-02"
 
 // Statistic holds all values that are generated as part of the stats
 // command.
@@ -24,7 +21,7 @@ type Statistic struct {
 // Print prints the Statistic struct to the console indenting everything
 // by the given indent and lower levels by multiples of the given indent.
 func (s Statistic) Print(indent string) {
-	precision := config.Get().GetPrecision()
+	precision := GetConfig().GetPrecision()
 	f := FormatDuration
 	fmt.Printf("%sworked    : %s\n", indent, f(s.Worked, precision))
 	fmt.Printf("%splanned   : %s\n", indent, f(s.Planned, precision))
@@ -48,7 +45,7 @@ type Project struct {
 // Print prints an indented representation of Project and Tasks if ByTasks
 // contains at least one element.
 func (p Project) Print(indent string) {
-	precision := config.Get().GetPrecision()
+	precision := GetConfig().GetPrecision()
 	fmt.Printf("%s  %s: %s\n", indent, p.Name, FormatDuration(p.Worked, precision))
 	if len(p.ByTasks) > 0 {
 		fmt.Printf("%s  by tasks:\n", indent)
@@ -66,37 +63,12 @@ type Task struct {
 
 // Print prints an indented representation of Task
 func (t Task) Print(indent string) {
-	precision := config.Get().GetPrecision()
+	precision := tt.GetConfig().GetPrecision()
 	name := t.Name
 	if name == "" {
 		name = "without task"
 	}
 	fmt.Printf("%s    %s: %s\n", indent, name, FormatDuration(t.Worked, precision))
-}
-
-// FormatDuration formats a duration in the precision defined by the
-// config.
-func FormatDuration(d time.Duration, precision time.Duration) string {
-	h := d / time.Hour
-	m := (d - (h * time.Hour)) / time.Minute
-	s := (d - (h * time.Hour) - (m * time.Minute)) / time.Second
-	sign := ""
-	if d < 0 {
-		sign = "-"
-		h *= -1
-		m *= -1
-		s *= -1
-	}
-	switch precision {
-	case time.Second:
-		return fmt.Sprintf("%s%dh%dm%ds", sign, h, m, s)
-	case time.Minute:
-		return fmt.Sprintf("%s%dh%dm", sign, h, m)
-	case time.Hour:
-		return fmt.Sprintf("%s%dh", sign, h)
-	default:
-		return "unknown precision"
-	}
 }
 
 // GetTimeStatistics generates a types.Statistic struct for all timers
@@ -240,7 +212,7 @@ func plannedTime(timers Timers) (time.Duration, error) {
 	// we want to get all dates before tomorrow
 	var d time.Duration
 	end = time.Date(end.Year(), end.Month(), end.Day()+1, 0, 0, 0, 0, time.Local)
-	c := config.Get()
+	c := GetConfig()
 
 	// once for every day add the hours that would have been worked on that day
 	for currentTime := start; currentTime.Before(end); currentTime = currentTime.Add(time.Hour * 24) {

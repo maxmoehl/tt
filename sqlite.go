@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/maxmoehl/tt/config"
-
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3" // import database driver
 )
@@ -49,7 +47,7 @@ func (db *sqlite) GetLastTimer(running bool) (Timer, Error) {
 	for rows.Next() {
 		t, err := db.scanRow(rows)
 		if err != nil {
-			return Timer{}, ErrInternalError.WithCause(err)
+			return Timer{}, NewError("unable to get last timer").WithCause(err)
 		}
 		timers = append(timers, t)
 	}
@@ -80,7 +78,7 @@ func (db *sqlite) GetTimers(filter Filter) (Timers, Error) {
 	for rows.Next() {
 		t, err = db.scanRow(rows)
 		if err != nil {
-			return nil, ErrInternalError.WithCause(err)
+			return nil, NewError("unable to get timers").WithCause(err)
 		}
 		// We still filter the timers since the sql filtering for tags
 		// is questionable at best
@@ -99,7 +97,7 @@ func (db *sqlite) StoreTimer(timer Timer) Error {
 		INSERT INTO timers (uuid, start, stop, project, task, tags)
 		VALUES (?, ?, ?, ?, ?, ?);`
 	if timer.IsZero() {
-		return ErrBadRequest.WithCause(NewErrorf("timer is zero"))
+		return ErrInvalidData.WithCause(NewErrorf("timer is zero"))
 	}
 	id := timer.Uuid.String()
 	start := timer.Start.Unix()
@@ -124,7 +122,7 @@ func (db *sqlite) UpdateTimer(timer Timer) Error {
 	updateStmt := `
 		UPDATE timers
 		SET stop = ?
-		WHERE uuid = ?;`
+		WHERE uuid = ? AND stop IS NULL;`
 	res, err := db.db.Exec(updateStmt, timer.Stop.Unix(), timer.Uuid.String())
 	if err != nil {
 		return ErrInternalError.WithCause(err)
@@ -134,24 +132,51 @@ func (db *sqlite) UpdateTimer(timer Timer) Error {
 		return ErrInternalError.WithCause(err)
 	}
 	if rowsAffected == 0 {
-		return ErrNotFound
+		return ErrNotFound.WithCause(NewError("either the timer could not be found, or it already has a stop time"))
 	}
 	return nil
 }
 
 func (db *sqlite) create() Error {
-	createStmt := `
+	setupStmt := `
+		-- create the tables
 		CREATE TABLE IF NOT EXISTS
 			timers
 		(
 			uuid    TEXT PRIMARY KEY,
 			start   INTEGER NOT NULL,
 			stop    INTEGER,
-			project TEXT NOT NULL,
+			project TEXT    NOT NULL,
 			task    TEXT,
 			tags    TEXT
-		);`
-	_, err := db.db.Exec(createStmt)
+		);
+		-- create trigger to prevent collisions
+		CREATE TRIGGER IF NOT EXISTS noCollisions
+			BEFORE INSERT
+			ON timers
+			FOR EACH ROW
+		BEGIN
+			SELECT RAISE(ROLLBACK, 'new timer collides with existing one')
+			WHERE EXISTS(
+						  SELECT 1
+						  FROM timers
+						  WHERE (timers.start <= NEW.start AND timers.stop > NEW.start)
+							 OR (timers.start > NEW.start AND timers.start < NEW.stop));
+		END;
+		-- create trigger to prevent multiple running timers
+		CREATE TRIGGER IF NOT EXISTS onlyOneRunning
+			BEFORE INSERT
+			ON timers
+			FOR EACH ROW
+		BEGIN
+			SELECT RAISE(ROLLBACK, 'running timer already exists, cannot have two running timers')
+			WHERE EXISTS(
+						  SELECT 1
+						  FROM timers
+						  WHERE NEW.stop IS NULL
+							AND timers.stop IS NULL);
+		END;`
+	_, err := db.db.Exec(setupStmt)
 	if err != nil {
 		return ErrInternalError.WithCause(err)
 	}
@@ -178,7 +203,6 @@ func (db *sqlite) scanRow(row scanable) (Timer, Error) {
 	if start == nil {
 		return Timer{}, ErrInternalError.WithCause(NewError("found nil start time"))
 	}
-	startTime := time.Unix(*start, 0)
 	var stopTime time.Time
 	if stop != nil {
 		stopTime = time.Unix(*stop, 0)
@@ -198,7 +222,7 @@ func (db *sqlite) scanRow(row scanable) (Timer, Error) {
 	}
 	return Timer{
 		Uuid:    UUID,
-		Start:   startTime,
+		Start:   time.Unix(*start, 0),
 		Stop:    stopTime,
 		Project: *project,
 		Task:    taskString,
@@ -207,12 +231,12 @@ func (db *sqlite) scanRow(row scanable) (Timer, Error) {
 }
 
 // NewSQLite creates and initializes a new SQLite storage interface.
-// The connection is tested using sql.DB.Ping() and the timers table
+// The connection is tested using sql.DB.Ping() and the timers' table
 // is created if it does not exist.
-func NewSQLite() (Storage, Error) {
+func NewSQLite(c Config) (Storage, Error) {
 	storage := &sqlite{}
 	var e error
-	storage.db, e = sql.Open("sqlite3", filepath.Join(config.HomeDir(), "storage.db"))
+	storage.db, e = sql.Open("sqlite3", filepath.Join(c.HomeDir(), "storage.db"))
 	if e != nil {
 		return nil, ErrInternalError.WithCause(e)
 	}

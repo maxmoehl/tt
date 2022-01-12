@@ -1,4 +1,4 @@
-package main
+package time_clock
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/maxmoehl/tt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ This command displays various statistics. The following statistics are
 currently available:
 
   worked    : total time worked
-  planned   : planned work time as specified by the config
+  planned   : planned work time as specified by the internalConfig
   percentage: percentage of planned time fulfilled
   difference: absolute difference between planned and worked
 
@@ -67,38 +66,34 @@ formed. Available values are:
 
 Invalid values are ignored.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		stats(getStatsParameters(cmd, args))
+		runStats(getStatsParameters(cmd, args))
 	},
 }
 
-func init() {
+func NewCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(statsCmd)
 	statsCmd.Flags().BoolP(flagJSON, string(flagJSON[0]), false, "Enables printing in the json format, any arguments are ignored.")
 	statsCmd.Flags().StringP(flagGroupBy, string(flagGroupBy[0]), "", "Group output by certain aspects: project task day")
 	statsCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "Filter the data before generating statistics")
 }
 
-func stats(silent, jsonFlag bool, groupBy, filterString string) {
+func runStats(quiet, jsonFlag bool, groupBy string, filter tt.Filter) {
 	byProject, byTask, byDay := getGroupByFields(groupBy)
 	// the only thing we do is provide output, so there is no point in doing anything if
 	// no output should be given
-	if silent {
+	if quiet {
 		return
-	}
-	filter, err := tt.ParseFilterString(filterString)
-	if err != nil {
-		PrintError(err, silent)
 	}
 	if byDay {
 		statistics, err := tt.GetTimeStatisticsByDay(byProject, byTask, filter)
 		if err != nil {
-			PrintError(err, silent)
+			tt.PrintError(err, quiet)
 		}
 		printStatsStatistics(statistics, jsonFlag)
 		if !jsonFlag {
 			statistic, err := tt.GetTimeStatistics(false, false, filter)
 			if err != nil {
-				PrintError(err, silent)
+				tt.PrintError(err, quiet)
 			}
 			fmt.Println("Summary:")
 			statistic.Print("  ")
@@ -106,12 +101,12 @@ func stats(silent, jsonFlag bool, groupBy, filterString string) {
 	} else {
 		statistic, err := tt.GetTimeStatistics(byProject, byTask, filter)
 		if err != nil {
-			PrintError(err, silent)
+			tt.PrintError(err, quiet)
 		}
 		if jsonFlag {
 			err = json.NewEncoder(os.Stdout).Encode(statistic)
 			if err != nil {
-				PrintError(err, false)
+				tt.PrintError(err, false)
 			}
 		} else {
 			statistic.Print("")
@@ -119,13 +114,13 @@ func stats(silent, jsonFlag bool, groupBy, filterString string) {
 	}
 }
 
-func printStatsStatistics(statistics map[string]tt.Statistic, j bool) {
+func printStatsStatistics(statistics map[string]tt.Statistic, jsonFlag bool) {
 	var dates []string
 
-	if j {
+	if jsonFlag {
 		err := json.NewEncoder(os.Stdout).Encode(statistics)
 		if err != nil {
-			PrintError(err, false)
+			tt.PrintError(err, false)
 		}
 		return
 	}
@@ -143,23 +138,24 @@ func printStatsStatistics(statistics map[string]tt.Statistic, j bool) {
 	}
 }
 
-func getStatsParameters(cmd *cobra.Command, args []string) (silent, jsonFlag bool, groupBy, filter string) {
+func getStatsParameters(cmd *cobra.Command, args []string) (quiet, jsonFlag bool, groupBy string, filter tt.Filter) {
 	var err error
-	silent = getSilent(cmd)
+	quiet = getQuiet(cmd)
 	jsonFlag, err = cmd.LocalFlags().GetBool(flagJSON)
 	if err != nil {
-		PrintError(err, silent)
+		tt.PrintError(err, quiet)
 	}
 	groupBy, err = cmd.LocalFlags().GetString(flagGroupBy)
 	if err != nil {
-		PrintError(err, silent)
+		tt.PrintError(err, quiet)
 	}
-	filter, err = cmd.LocalFlags().GetString(flagFilter)
+	rawFilter, err := cmd.LocalFlags().GetString(flagFilter)
 	if err != nil {
-		PrintError(err, silent)
+		tt.PrintError(err, quiet)
 	}
+	filter, err = tt.ParseFilterString(rawFilter)
 	if len(args) != 0 {
-		PrintWarning(WarningNoArgumentsAccepted)
+		tt.PrintWarning(tt.WarningNoArgumentsAccepted)
 	}
 	return
 }

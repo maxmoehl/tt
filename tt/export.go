@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	flagFilter = "filter"
+
 	exportFormatCSV  = "csv"
 	exportFormatJSON = "json"
 	exportFormatSQL  = "sql"
@@ -19,7 +21,7 @@ var exportCmd = &cobra.Command{
 	Use:   "export <format>",
 	Short: "Export data to a given format",
 	Run: func(cmd *cobra.Command, args []string) {
-		export(getExportParameters(cmd, args))
+		runExport(getExportParameters(cmd, args))
 	},
 }
 
@@ -28,48 +30,49 @@ func init() {
 	exportCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "Set a filter to apply before exporting")
 }
 
-func getExportParameters(cmd *cobra.Command, args []string) (silent bool, filter, exportFormat string) {
+func getExportParameters(cmd *cobra.Command, args []string) (quiet bool, exportFormat string, filter tt.Filter) {
 	var err error
-	silent = getSilent(cmd)
+	quiet = getQuiet(cmd)
 	if len(args) != 1 {
-		PrintError(fmt.Errorf("expected one argument"), silent)
+		tt.PrintError(fmt.Errorf("expected one argument"), quiet)
 	}
 	exportFormat = args[0]
 	if exportFormat != exportFormatCSV && exportFormat != exportFormatJSON && exportFormat != exportFormatSQL {
-		PrintError(fmt.Errorf("unknown export format %s", exportFormat), silent)
+		tt.PrintError(fmt.Errorf("unknown export format %s", exportFormat), quiet)
 	}
-	filter, err = cmd.LocalFlags().GetString(flagFilter)
+	rawFilter, err := cmd.LocalFlags().GetString(flagFilter)
 	if err != nil {
-		PrintError(err, silent)
+		tt.PrintError(err, quiet)
+	}
+	filter, err = tt.ParseFilterString(rawFilter)
+	if err != nil {
+		tt.PrintError(err, quiet)
 	}
 	return
 }
 
-func export(silent bool, filterString, exportFormat string) {
-	if silent {
+func runExport(quiet bool, exportFormat string, filter tt.Filter) {
+	if quiet {
 		return
 	}
-	filter, err := tt.ParseFilterString(filterString)
+	timers, err := tt.GetStorage().GetTimers(filter)
 	if err != nil {
-		PrintError(err, silent)
-	}
-	timers, err := tt.GetTimers(filter)
-	if err != nil {
-		PrintError(err, silent)
+		tt.PrintError(err, quiet)
 	}
 	var out string
+	var e error
 	switch exportFormat {
 	case exportFormatJSON:
 		var b []byte
-		b, err = json.Marshal(timers)
+		b, e = json.Marshal(timers)
 		out = string(b)
 	case exportFormatCSV:
-		out, err = timers.CSV()
+		out, e = timers.CSV()
 	case exportFormatSQL:
-		out, err = timers.SQL()
+		out, e = timers.SQL()
 	}
-	if err != nil {
-		PrintError(err, silent)
+	if e != nil {
+		tt.PrintError(e, quiet)
 	}
 	fmt.Println(out)
 }

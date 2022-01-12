@@ -2,16 +2,17 @@ package tt
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
-
-	"github.com/maxmoehl/tt/config"
 
 	"github.com/google/uuid"
 )
 
 type file struct {
-	timers Timers
+	config      Config
+	timers      Timers
+	storagePath string
 }
 
 func (f *file) GetTimer(uuid uuid.UUID) (Timer, Error) {
@@ -38,7 +39,7 @@ func (f *file) GetTimers(filter Filter) (Timers, Error) {
 
 func (f *file) StoreTimer(newTimer Timer) Error {
 	if newTimer.IsZero() {
-		return ErrBadRequest.WithCause(NewErrorf("timer is zero"))
+		return ErrInvalidData.WithCause(NewErrorf("timer is zero"))
 	}
 	exists := false
 	for _, t := range f.timers {
@@ -48,7 +49,7 @@ func (f *file) StoreTimer(newTimer Timer) Error {
 		}
 	}
 	if exists {
-		return ErrBadRequest.WithCause(NewErrorf("timer with uuid %s already exists", newTimer.Uuid.String()))
+		return ErrInvalidData.WithCause(NewErrorf("timer with uuid %s already exists", newTimer.Uuid.String()))
 	}
 	f.timers = append(f.timers, newTimer)
 	return f.write()
@@ -70,7 +71,7 @@ func (f *file) UpdateTimer(updatedTimer Timer) Error {
 }
 
 func (f *file) write() Error {
-	fileWriter, err := os.Create(getStorageFile())
+	fileWriter, err := os.Create(f.storagePath)
 	if err != nil {
 		return ErrInternalError.WithCause(err)
 	}
@@ -83,13 +84,15 @@ func (f *file) write() Error {
 
 // NewFile initializes and returns a new storage interface that can be used
 // to access data.
-func NewFile() (Storage, Error) {
-	var f file
-	if !storageFileExists() {
-		return &f, nil
+func NewFile(c Config) (Storage, Error) {
+	f := file{
+		config:      c,
+		storagePath: filepath.Join(c.HomeDir(), "storage.json"),
 	}
-	fileReader, err := os.Open(getStorageFile())
-	if err != nil {
+	fileReader, err := os.Open(f.storagePath)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return &f, nil
+	} else if err != nil {
 		return nil, ErrInternalError.WithCause(err)
 	}
 	err = json.NewDecoder(fileReader).Decode(&f.timers)
@@ -97,16 +100,4 @@ func NewFile() (Storage, Error) {
 		return nil, ErrInternalError.WithCause(err)
 	}
 	return &f, nil
-}
-
-func getStorageFile() string {
-	return filepath.Join(config.HomeDir(), "storage.json")
-}
-
-func storageFileExists() bool {
-	_, err := os.Stat(getStorageFile())
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
 }

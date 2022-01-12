@@ -1,4 +1,4 @@
-package config
+package tt
 
 import (
 	"errors"
@@ -16,12 +16,15 @@ const (
 	HomeDirEnv = "TT_HOME_DIR"
 
 	// StorageTypeFile is the identifier for file storage configuration
-	StorageTypeFile   = "file"
+	StorageTypeFile = "file"
 	// StorageTypeSQLite is the identifier for SQLite storage configuration
 	StorageTypeSQLite = "sqlite"
 )
 
-var c Config
+var (
+	c            Config
+	configLoaded bool
+)
 
 // Config holds all available configuration values.
 type Config struct {
@@ -44,6 +47,8 @@ type Config struct {
 	// StorageType indicates which type of storage tt should use. Available values are: [file sqlite]
 	// Default: file
 	StorageType string `yaml:"storageType"`
+	// Plugins contains options that will be passed on to plugins
+	Plugins map[string]interface{} `yaml:"plugins"`
 }
 
 // GetPrecision returns the precision as a duration.
@@ -66,14 +71,21 @@ func (c Config) GetPrecision() time.Duration {
 	}
 }
 
-// Get returns the current Config
-func Get() Config {
+// GetConfig returns the current Config
+func GetConfig() Config {
+	if !configLoaded {
+		err := LoadConfig()
+		if err != nil {
+			panic(err.Error())
+		}
+		configLoaded = true
+	}
 	return c
 }
 
-// HomeDir returns the path to the directory that contains for storage
-// files and configuration files.
-func HomeDir() string {
+// HomeDir returns the path to the directory that contains storage
+// and configuration files.
+func (_ Config) HomeDir() string {
 	ttHomeDir := os.Getenv(HomeDirEnv)
 	if ttHomeDir == "" {
 		ttHomeDir = filepath.Join(os.Getenv("HOME"), ".tt")
@@ -81,9 +93,9 @@ func HomeDir() string {
 	return ttHomeDir
 }
 
-// Load allows to manually load the configuration file.
-func Load() error {
-	ttHomeDir := HomeDir()
+// LoadConfig allows to manually load the configuration file.
+func LoadConfig() error {
+	ttHomeDir := GetConfig().HomeDir()
 	file, err := os.Open(filepath.Join(ttHomeDir, "config.yaml"))
 	if err != nil {
 		// If the occurred error is related to the file not existing we set the defaults

@@ -121,7 +121,6 @@ func Test_err_Error(t *testing.T) {
 			},
 			"foo; reason: [bar; reason: [baz; reason: [whatever]]]",
 		},
-
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

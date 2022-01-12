@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/maxmoehl/tt/test"
-
 	"github.com/google/uuid"
 )
 
@@ -23,11 +21,11 @@ workDays:
   sunday: false`
 
 func setupFileTest() error {
-	err := test.SetConfig(fileConfig)
+	err := SetConfig(fileConfig)
 	if err != nil {
 		return err
 	}
-	err = initStorage()
+	err = InitStorage()
 	if err != nil {
 		return err
 	}
@@ -41,7 +39,7 @@ func setupFileTest() error {
 
 func reloadTestFile() error {
 	var err error
-	s, err = NewFile()
+	s, err = NewFile(GetConfig())
 	if err != nil {
 		return err
 	}
@@ -58,7 +56,7 @@ func TestNewFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	s, err := NewFile()
+	s, err := NewFile(GetConfig())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

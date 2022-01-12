@@ -35,3 +35,11 @@ tt version v0.1.1
 
 Documentation is available as part of the cli. Only calling `tt` prints out a help
 section from which you can explore the different commands.
+
+# To-Do
+- [ ] rename `cli` to `tt` which would allow for `go install github.com/maxmoehl/tt/tt@version`
+  - maybe we can also just move the files if we reduce the core application a bit the additional functionality
+    would go into a plugin folder
+- [ ] switch to a plugin based approach to keep the core app small
+  - [ ] define a plugin interface
+  - [ ] think about possible things to plug (commands, storage implementations, ...)

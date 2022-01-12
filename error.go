@@ -2,23 +2,17 @@ package tt
 
 import (
 	"fmt"
-	"net/http"
 )
 
 var (
-	ErrBadRequest    = NewError("bad request")
-	ErrInternalError = NewError("internal server error")
+	ErrInvalidData   = NewError("invalid data")
+	ErrInternalError = NewError("internal error")
 	ErrNotFound      = NewError("not found")
 )
 
-var StatusCodeMapping = map[Error]int{
-	ErrBadRequest:    http.StatusBadRequest,
-	ErrInternalError: http.StatusInternalServerError,
-	ErrNotFound:      http.StatusNotFound,
-}
-
 type Error interface {
 	Error() string
+	Msg() string
 	Unwrap() error
 	WithCause(error) Error
 }
@@ -32,6 +26,10 @@ func (e *err) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("%s; reason: [%s]", e.Message, e.Cause.Error())
 	}
+	return e.Message
+}
+
+func (e *err) Msg() string {
 	return e.Message
 }
 

@@ -1,10 +1,8 @@
-package test
+package tt
 
 import (
 	"os"
 	"path/filepath"
-
-	"github.com/maxmoehl/tt/config"
 )
 
 var testDir string
@@ -29,7 +27,7 @@ func setup() string {
 	if err != nil {
 		panic(err.Error())
 	}
-	err = os.Setenv(config.HomeDirEnv, testDir)
+	err = os.Setenv(HomeDirEnv, testDir)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -43,14 +41,14 @@ func teardown(path string) {
 	}
 }
 
-// SetConfig sets the given string as configfile and reloads the config.
-// This ensures every test has the correct config when being executed.
+// SetConfig sets the given string as configfile and reloads the Config.
+// This ensures every test has the correct Config when being executed.
 func SetConfig(configFile string) error {
 	err := os.WriteFile(filepath.Join(testDir, "config.yaml"), []byte(configFile), 0666)
 	if err != nil {
 		return err
 	}
-	err = config.Load()
+	err = LoadConfig()
 	if err != nil {
 		return err
 	}

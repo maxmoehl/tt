@@ -19,6 +19,8 @@ const (
 
 	sqlOperatorLike   = "LIKE"
 	sqlOperatorEquals = "="
+
+	DateFormat = "2006-01-02"
 )
 
 // Filter contains all available filters. If a value is empty (i.e. ""
@@ -153,14 +155,14 @@ func ParseFilterQuery(q url.Values) (Filter, error) {
 	for qKey, qValues := range q {
 		key, err := url.QueryUnescape(qKey)
 		if err != nil {
-			return f, ErrBadRequest.WithCause(err)
+			return f, ErrInvalidData.WithCause(err)
 		}
 		if len(qValues) != 1 {
-			return f, ErrBadRequest.WithCause(NewError("got an empty query parameter or duplicate keys"))
+			return f, ErrInvalidData.WithCause(NewError("got an empty query parameter or duplicate keys"))
 		}
 		values, err := url.QueryUnescape(qValues[0])
 		if err != nil {
-			return f, ErrBadRequest.WithCause(err)
+			return f, ErrInvalidData.WithCause(err)
 		}
 		err = parseValuesInto(key, values, &f)
 		if err != nil {
@@ -185,7 +187,7 @@ func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 func parseFilter(in string) (key, values string, err error) {
 	filterSplit := strings.Split(in, "=")
 	if len(filterSplit) != 2 {
-		return "", "", ErrBadRequest.WithCause(NewErrorf("expected one '=' per Filter but got %d: [%s]", len(filterSplit), in))
+		return "", "", ErrInvalidData.WithCause(NewErrorf("expected one '=' per Filter but got %d: [%s]", len(filterSplit), in))
 	}
 	return filterSplit[0], filterSplit[1], nil
 }
@@ -195,41 +197,41 @@ func parseValuesInto(key, values string, f *Filter) (err Error) {
 	switch key {
 	case filterProject:
 		if f.project != nil {
-			err = ErrBadRequest.WithCause(NewError("redeclared filter project"))
+			err = ErrInvalidData.WithCause(NewError("redeclared filter project"))
 			return
 		}
 		f.project = strings.Split(values, valuesSeparator)
 	case filterTask:
 		if f.task != nil {
-			err = ErrBadRequest.WithCause(NewError("redeclared filter task"))
+			err = ErrInvalidData.WithCause(NewError("redeclared filter task"))
 			return
 		}
 		f.task = strings.Split(values, valuesSeparator)
 	case filterSince:
 		if !f.since.IsZero() {
-			err = ErrBadRequest.WithCause(NewError("redeclared filter since"))
+			err = ErrInvalidData.WithCause(NewError("redeclared filter since"))
 			return
 		}
 		f.since, e = time.Parse(DateFormat, values)
 		if err != nil {
-			err = ErrBadRequest.WithCause(e)
+			err = ErrInvalidData.WithCause(e)
 			return
 		}
 		f.since = time.Date(f.since.Year(), f.since.Month(), f.since.Day(), 0, 0, 0, 0, time.Local)
 	case filterUntil:
 		if !f.until.IsZero() {
-			err = ErrBadRequest.WithCause(NewError("redeclared filter until"))
+			err = ErrInvalidData.WithCause(NewError("redeclared filter until"))
 			return
 		}
 		f.until, e = time.Parse(DateFormat, values)
 		if err != nil {
-			err = ErrBadRequest.WithCause(e)
+			err = ErrInvalidData.WithCause(e)
 			return
 		}
 		f.until = time.Date(f.until.Year(), f.until.Month(), f.until.Day(), 0, 0, 0, 0, time.Local)
 	case filterTags:
 		if f.tags != nil {
-			err = ErrBadRequest.WithCause(NewError("redeclared filter tags"))
+			err = ErrInvalidData.WithCause(NewError("redeclared filter tags"))
 			return
 		}
 		f.tags = strings.Split(values, valuesSeparator)

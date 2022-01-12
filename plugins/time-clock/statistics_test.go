@@ -1,10 +1,9 @@
-package tt
+package time_clock
 
 import (
 	"fmt"
+	"testing"
 	"time"
-
-	"github.com/maxmoehl/tt/test"
 )
 
 const statisticsConfigTemplate = `
@@ -21,7 +20,7 @@ workDays:
   sunday: false`
 
 func ExampleStatisticPrintNoProjects() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -39,7 +38,7 @@ func ExampleStatisticPrintNoProjects() {
 }
 
 func ExampleStatisticPrintWithProjects() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -70,7 +69,7 @@ func ExampleStatisticPrintWithProjects() {
 }
 
 func ExampleProjectPrintNoTasks() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "m"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "m"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -85,7 +84,7 @@ func ExampleProjectPrintNoTasks() {
 }
 
 func ExampleProjectPrintWithTasks() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -112,7 +111,7 @@ func ExampleProjectPrintWithTasks() {
 }
 
 func ExampleTaskPrintSecond() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "s"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "s"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -126,7 +125,7 @@ func ExampleTaskPrintSecond() {
 }
 
 func ExampleTaskPrintMinute() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "m"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "m"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -140,7 +139,7 @@ func ExampleTaskPrintMinute() {
 }
 
 func ExampleTaskPrintHour() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "h"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -154,7 +153,7 @@ func ExampleTaskPrintHour() {
 }
 
 func ExampleTaskPrintNoTask() {
-	err := test.SetConfig(fmt.Sprintf(statisticsConfigTemplate, "s"))
+	err := SetConfig(fmt.Sprintf(statisticsConfigTemplate, "s"))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -165,4 +164,64 @@ func ExampleTaskPrintNoTask() {
 
 	// Output:
 	// without task: 1h0m0s
+}
+
+func TestFormatDuration(t *testing.T) {
+	type args struct {
+		d         time.Duration
+		precision time.Duration
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"precision hour",
+			args{
+				time.Hour + 40*time.Minute,
+				time.Hour,
+			},
+			"1h",
+		},
+		{
+			"precision minute",
+			args{
+				time.Hour + 20*time.Minute,
+				time.Minute,
+			},
+			"1h20m",
+		},
+		{
+			"precision second",
+			args{
+				time.Hour + 20*time.Minute,
+				time.Second,
+			},
+			"1h20m0s",
+		},
+		{
+			"precision second, negative",
+			args{
+				-(time.Hour + 20*time.Minute),
+				time.Second,
+			},
+			"-1h20m0s",
+		},
+		{
+			"unknown precision",
+			args{
+				time.Hour + 20*time.Minute,
+				time.Microsecond,
+			},
+			"unknown precision",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FormatDuration(tt.args.d, tt.args.precision); got != tt.want {
+				t.Errorf("FormatDuration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

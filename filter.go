@@ -2,7 +2,6 @@ package tt
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -36,7 +35,7 @@ type Filter struct {
 	// since stores the date from which on the data should be included. Since
 	// is inclusive and only accepts a single value in the following form:
 	//   yyyy-MM-dd
-	// Since Filter can be set with the keyword 'since'.
+	// Since filter can be set with the keyword 'since'.
 	since time.Time
 	// until stores the last date that should be included. Until is inclusive
 	// and only accepts a single value in the following form:
@@ -57,10 +56,10 @@ func (f Filter) Match(t Timer) bool {
 	if f.task != nil && !stringSliceContains(f.task, t.Task) {
 		return false
 	}
-	if !f.since.IsZero() && t.Start.Before(f.since) {
+	if !f.since.IsZero() && beforeDate(t.Start, f.since) {
 		return false
 	}
-	if !f.until.IsZero() && (t.Start.After(f.until) || t.Stop.After(f.until)) {
+	if !f.until.IsZero() && beforeDate(f.until, t.Start) {
 		return false
 	}
 	if f.tags != nil && !stringSliceContainsAny(f.tags, t.Tags) {
@@ -78,6 +77,9 @@ func (f Filter) Timers(timers Timers) (filtered Timers) {
 	return
 }
 
+// SQL returns the WHERE clause that can be used to match timers using this filter.
+// A known limitation is that filtering for tags is not supported because of the
+// way the tags are stored in the database.
 func (f Filter) SQL() string {
 	var filters []string
 	projects := convertFilterToSql("project", f.project, sqlOperatorEquals)
@@ -88,15 +90,15 @@ func (f Filter) SQL() string {
 	if tasks != "" {
 		filters = append(filters, tasks)
 	}
+	if !f.since.IsZero() {
+		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') >= '%s'", f.since.Format(DateFormat)))
+	}
+	if !f.until.IsZero() {
+		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') < '%s'", f.until.Format(DateFormat)))
+	}
 	tags := convertFilterToSql("tags", f.tags, sqlOperatorLike)
 	if tags != "" {
 		filters = append(filters, tags)
-	}
-	if !f.since.IsZero() {
-		filters = append(filters, fmt.Sprintf("start > %d", f.since.Unix()))
-	}
-	if !f.until.IsZero() {
-		filters = append(filters, fmt.Sprintf("stop < %d", f.until.Unix()))
 	}
 	// if there are no filters return TRUE to match all values
 	if len(filters) == 0 {
@@ -115,7 +117,7 @@ func (f Filter) SQL() string {
 // values separated by commas.
 //
 // Example:
-//   projectName=work,school;since=2020-01-01;until=2020-02-01
+//   project=work,school;since=2020-01-01;until=2020-02-01
 //
 // Available filters are:
 //
@@ -144,30 +146,9 @@ func ParseFilterString(filterString string) (Filter, error) {
 	}
 	// To make until inclusive we have to add 24h to it since Filter.Match
 	// checks if the end of a timer is before until
+	// TODO: this might not be necessary anymore
 	if !f.until.IsZero() {
 		f.until = f.until.Add(time.Hour * 24)
-	}
-	return f, nil
-}
-
-func ParseFilterQuery(q url.Values) (Filter, error) {
-	var f Filter
-	for qKey, qValues := range q {
-		key, err := url.QueryUnescape(qKey)
-		if err != nil {
-			return f, ErrInvalidData.WithCause(err)
-		}
-		if len(qValues) != 1 {
-			return f, ErrInvalidData.WithCause(NewError("got an empty query parameter or duplicate keys"))
-		}
-		values, err := url.QueryUnescape(qValues[0])
-		if err != nil {
-			return f, ErrInvalidData.WithCause(err)
-		}
-		err = parseValuesInto(key, values, &f)
-		if err != nil {
-			return f, err
-		}
 	}
 	return f, nil
 }
@@ -178,8 +159,8 @@ func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 	return Filter{
 		project: projects,
 		task:    tasks,
-		since:   since,
-		until:   until,
+		since:   time.Date(since.Year(), since.Month(), since.Day(), 0, 0, 0, 0, time.UTC),
+		until:   time.Date(until.Year(), until.Month(), until.Day(), 0, 0, 0, 0, time.UTC),
 		tags:    tags,
 	}
 }
@@ -187,51 +168,48 @@ func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 func parseFilter(in string) (key, values string, err error) {
 	filterSplit := strings.Split(in, "=")
 	if len(filterSplit) != 2 {
-		return "", "", ErrInvalidData.WithCause(NewErrorf("expected one '=' per Filter but got %d: [%s]", len(filterSplit), in))
+		return "", "", ErrInvalidData
 	}
 	return filterSplit[0], filterSplit[1], nil
 }
 
-func parseValuesInto(key, values string, f *Filter) (err Error) {
-	var e error
+func parseValuesInto(key, values string, f *Filter) (err error) {
 	switch key {
 	case filterProject:
 		if f.project != nil {
-			err = ErrInvalidData.WithCause(NewError("redeclared filter project"))
+			err = fmt.Errorf("%w: redeclared filter project", ErrInvalidData)
 			return
 		}
 		f.project = strings.Split(values, valuesSeparator)
 	case filterTask:
 		if f.task != nil {
-			err = ErrInvalidData.WithCause(NewError("redeclared filter task"))
+			err = fmt.Errorf("%w: redeclared filter task", ErrInvalidData)
 			return
 		}
 		f.task = strings.Split(values, valuesSeparator)
 	case filterSince:
 		if !f.since.IsZero() {
-			err = ErrInvalidData.WithCause(NewError("redeclared filter since"))
+			err = fmt.Errorf("%w: redeclared filter since", ErrInvalidData)
 			return
 		}
-		f.since, e = time.Parse(DateFormat, values)
+		f.since, err = time.Parse(DateFormat, values)
 		if err != nil {
-			err = ErrInvalidData.WithCause(e)
+			err = fmt.Errorf("%w: %s", ErrInvalidData, err.Error())
 			return
 		}
-		f.since = time.Date(f.since.Year(), f.since.Month(), f.since.Day(), 0, 0, 0, 0, time.Local)
 	case filterUntil:
 		if !f.until.IsZero() {
-			err = ErrInvalidData.WithCause(NewError("redeclared filter until"))
+			err = fmt.Errorf("%w: redeclared filter until", ErrInvalidData)
 			return
 		}
-		f.until, e = time.Parse(DateFormat, values)
+		f.until, err = time.Parse(DateFormat, values)
 		if err != nil {
-			err = ErrInvalidData.WithCause(e)
+			err = fmt.Errorf("%w: %s", ErrInvalidData, err.Error())
 			return
 		}
-		f.until = time.Date(f.until.Year(), f.until.Month(), f.until.Day(), 0, 0, 0, 0, time.Local)
 	case filterTags:
 		if f.tags != nil {
-			err = ErrInvalidData.WithCause(NewError("redeclared filter tags"))
+			err = fmt.Errorf("%w: redeclared filter tags", ErrInvalidData)
 			return
 		}
 		f.tags = strings.Split(values, valuesSeparator)
@@ -239,12 +217,14 @@ func parseValuesInto(key, values string, f *Filter) (err Error) {
 	return
 }
 
-// stringSliceContainsAny checks if any of the valid values is inside the
+// stringContainsAny checks if any of the valid values is inside the
 // searchable list.
-func stringSliceContainsAny(validValues, searchable []string) bool {
-	for _, v := range validValues {
-		if stringSliceContains(searchable, v) {
-			return true
+func stringSliceContainsAny(shouldContain []string, toSearch []string) bool {
+	for _, c := range shouldContain {
+		for _, t := range toSearch {
+			if c == t {
+				return true
+			}
 		}
 	}
 	return false
@@ -256,22 +236,16 @@ func convertFilterToSql(key string, values []string, operator string) string {
 	}
 	b := strings.Builder{}
 	for i, v := range values {
-		if i > 0 {
-			b.WriteString(" OR ")
-		} else {
+		if i == 0 {
 			b.WriteString("(")
+		} else {
+			b.WriteString(" OR ")
 		}
 		switch operator {
 		case sqlOperatorEquals:
-			b.WriteString(key)
-			b.WriteString("='")
-			b.WriteString(v)
-			b.WriteString("'")
+			b.WriteString(fmt.Sprintf("json_extract(`json`,'$.%s')='%s'", key, v))
 		case sqlOperatorLike:
-			b.WriteString(key)
-			b.WriteString(" LIKE '%")
-			b.WriteString(v)
-			b.WriteString("%'")
+			b.WriteString(fmt.Sprintf("json_extract(`json`,'$.%s') LIKE '%%%s%%'", key, v))
 		}
 	}
 	b.WriteString(")")
@@ -285,6 +259,26 @@ func stringSliceContains(strings []string, s string) bool {
 		if t == s {
 			return true
 		}
+	}
+	return false
+}
+
+// beforeDate returns whether date one is before date two.
+func beforeDate(one, two time.Time) bool {
+	if one.Year() < two.Year() {
+		return true
+	} else if one.Year() > two.Year() {
+		return false
+	}
+	if one.Month() < two.Month() {
+		return true
+	} else if one.Month() > two.Month() {
+		return false
+	}
+	if one.Day() < two.Day() {
+		return true
+	} else if one.Day() > two.Day() {
+		return false
 	}
 	return false
 }

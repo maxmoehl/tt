@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"errors"
@@ -9,32 +9,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	flagShort = "short"
-)
-
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Prints a short notice on the current status",
 	Long: `Reports if you are currently working, taking a break or taking some
 time off.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		runStatus(getStatusParameters(cmd, args))
+	RunE: func(cmd *cobra.Command, args []string) error {
+		quiet, short, err := getStatusParameters(cmd, args)
+		if err != nil {
+			return fmt.Errorf("status: %w", err)
+		}
+		err = runStatus(quiet, short)
+		if err != nil {
+			return fmt.Errorf("status: %w", err)
+		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
-	statusCmd.Flags().BoolP(flagShort, string(flagShort[0]), false, "Print the status in short format")
+	statusCmd.Flags().BoolP(flagShort, string(flagShort[0]), false, "print the status in short format")
 }
 
-func runStatus(quiet, short bool) {
+func runStatus(quiet, short bool) error {
 	if quiet {
-		return
+		return nil
 	}
-	lastTimer, err := tt.GetStorage().GetLastTimer(true)
+	orderBy := tt.OrderBy{
+		Field: tt.FieldStart,
+		Order: tt.OrderDsc,
+	}
+	var lastTimer tt.Timer
+	err := tt.GetDB().GetTimer(tt.Filter{}, orderBy, &lastTimer)
 	if err != nil && !errors.Is(err, tt.ErrNotFound) {
-		tt.PrintError(err, quiet)
+		return err
 	}
 	if errors.Is(err, tt.ErrNotFound) || !lastTimer.Running() {
 		if short {
@@ -58,17 +67,13 @@ func runStatus(quiet, short bool) {
 			}
 		}
 	}
+	return nil
 }
 
-func getStatusParameters(cmd *cobra.Command, args []string) (quiet, short bool) {
-	var err error
-	quiet = getQuiet(cmd)
-	short, err = cmd.LocalFlags().GetBool(flagShort)
+func getStatusParameters(cmd *cobra.Command, _ []string) (quiet, short bool, err error) {
+	flags, err := flags(cmd, flagQuiet, flagShort)
 	if err != nil {
-		tt.PrintError(err, quiet)
+		return
 	}
-	if len(args) != 0 && !quiet {
-		tt.PrintWarning(tt.WarningNoArgumentsAccepted)
-	}
-	return
+	return flags[flagQuiet].(bool), flags[flagShort].(bool), nil
 }

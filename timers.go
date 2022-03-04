@@ -2,52 +2,29 @@ package tt
 
 import (
 	"encoding/csv"
-	"fmt"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
-
-// Timer is the central type that stores a timer and all its relevant
-// values
-type Timer struct {
-	Uuid    uuid.UUID `json:"uuid"`
-	Start   time.Time `json:"start"`
-	Stop    time.Time `json:"end"`
-	Project string    `json:"project"`
-	Task    string    `json:"task,omitempty"`
-	Tags    []string  `json:"tags,omitempty"`
-}
-
-// Duration returns the duration that the timer has been running,
-// excluding any breaks.
-func (t Timer) Duration() time.Duration {
-	return t.Stop.Sub(t.Start)
-}
-
-// Running indicates whether the timer is still running.
-func (t Timer) Running() bool {
-	return t.Stop.IsZero()
-}
-
-// IsZero checks if the timer has been properly initialized.
-func (t Timer) IsZero() bool {
-	return t.Start.IsZero() && t.Stop.IsZero()
-}
 
 // Timers stores a list of timers to attach functions to it.
 type Timers []Timer
 
 // Running checks if any running timers exist and returns the index if one
-// is found.
-func (timers Timers) Running() (bool, int) {
+// is found. If the index is -1, no running timer exists.
+func (timers Timers) Running() int {
 	for i, ws := range timers {
 		if ws.Running() {
-			return true, i
+			return i
 		}
 	}
-	return false, -1
+	return -1
+}
+
+func (timers Timers) Duration() (d time.Duration) {
+	for _, t := range timers {
+		d += t.Duration()
+	}
+	return
 }
 
 // Last returns the last timer in the list ordered by start time. Running
@@ -83,7 +60,7 @@ func (timers Timers) CSV() (string, error) {
 		return "", err
 	}
 	for _, t := range timers {
-		err = w.Write([]string{t.Uuid.String(), t.Start.String(), t.Stop.String(), t.Project, t.Task, strings.Join(t.Tags, ", ")})
+		err = w.Write([]string{t.ID, t.Start.String(), t.Stop.String(), t.Project, t.Task, strings.Join(t.Tags, ",")})
 		if err != nil {
 			return "", err
 		}
@@ -96,31 +73,15 @@ func (timers Timers) CSV() (string, error) {
 	return b.String(), nil
 }
 
-// SQL exports all timers as a sequence of SQL statements to insert the
-// data into another database.
-func (timers Timers) SQL() (string, error) {
-	b := strings.Builder{}
-	b.WriteString("CREATE TABLE IF NOT EXISTS timers (uuid TEXT PRIMARY KEY, start INTEGER NOT NULL, stop INTEGER, project TEXT NOT NULL, task TEXT, tags TEXT);\n")
+func (timers Timers) GroupBy(field GroupByOption) map[string]Timers {
+	grouped := make(map[string]Timers)
 	for _, t := range timers {
-		var stop interface{}
-		var task, tags string
-		if !t.Stop.IsZero() {
-			stop = t.Stop.Unix()
+		key := t.groupByKey(field)
+		if _, ok := grouped[key]; ok {
+			grouped[key] = append(grouped[key], t)
 		} else {
-			stop = "NULL"
+			grouped[key] = Timers{t}
 		}
-		if t.Task != "" {
-			task = "'" + t.Task + "'"
-		} else {
-			task = "NULL"
-		}
-		if len(t.Tags) > 0 {
-			tags = "'" + strings.Join(t.Tags, ",") + "'"
-		} else {
-			tags = "NULL"
-		}
-		b.WriteString(fmt.Sprintf("INSERT INTO timers (uuid, start, stop, project, task, tags) VALUES ('%v', %v, %v, '%v', %v, %v);\n",
-			t.Uuid.String(), t.Start.Unix(), stop, t.Project, task, tags))
 	}
-	return b.String(), nil
+	return grouped
 }

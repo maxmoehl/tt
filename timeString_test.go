@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestLazyParse(t *testing.T) {
+func TestParseDate(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name    string
@@ -45,6 +45,58 @@ func TestLazyParse(t *testing.T) {
 				t.Errorf("ParseDate() error = %v, wantErr %v", err, tt.wantErr)
 			} else if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseDate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	type args struct {
+		d         time.Duration
+		precision time.Duration
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"precision seconds positive",
+			args{
+				time.Minute*2 + time.Second*12,
+				time.Second,
+			},
+			"00h02m12s",
+		},
+		{
+			"precision minutes positive",
+			args{
+				time.Minute*7 + time.Second*12,
+				time.Minute,
+			},
+			"00h07m",
+		},
+		{
+			"precision hours positive",
+			args{
+				time.Minute*2 + time.Second*12,
+				time.Hour,
+			},
+			"00h",
+		},
+		{
+			"precision minute negative",
+			args{
+				-(time.Minute*2 + time.Second*12),
+				time.Second,
+			},
+			"-00h02m12s",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FormatDuration(tt.args.d, tt.args.precision); got != tt.want {
+				t.Errorf("FormatDuration() = %v, want %v", got, tt.want)
 			}
 		})
 	}

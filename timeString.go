@@ -31,8 +31,7 @@ func ParseDate(in string) (time.Time, error) {
 
 	matches := datePattern.FindSubmatch([]byte(in))
 	if len(matches) == 0 {
-		return time.Time{},
-			ErrInvalidData.WithCause(NewError("timestamp is not RFC3339 compliant and does not match custom format"))
+		return time.Time{}, fmt.Errorf("timestamp is not RFC3339 compliant and does not match custom format")
 	}
 
 	now := time.Now()
@@ -91,8 +90,7 @@ func ParseDate(in string) (time.Time, error) {
 	return time.Date(year, time.Month(month), day, hour, min, sec, 0, time.Local), nil
 }
 
-// FormatDuration formats a duration in the precision defined by the
-// Config.
+// FormatDuration formats a duration in the given precision.
 func FormatDuration(d time.Duration, precision time.Duration) string {
 	h := d / time.Hour
 	m := (d - (h * time.Hour)) / time.Minute
@@ -106,11 +104,11 @@ func FormatDuration(d time.Duration, precision time.Duration) string {
 	}
 	switch precision {
 	case time.Second:
-		return fmt.Sprintf("%s%dh%dm%ds", sign, h, m, s)
+		return fmt.Sprintf("%s%02dh%02dm%02ds", sign, h, m, s)
 	case time.Minute:
-		return fmt.Sprintf("%s%dh%dm", sign, h, m)
+		return fmt.Sprintf("%s%02dh%02dm", sign, h, m)
 	case time.Hour:
-		return fmt.Sprintf("%s%dh", sign, h)
+		return fmt.Sprintf("%s%02dh", sign, h)
 	default:
 		return "unknown precision"
 	}

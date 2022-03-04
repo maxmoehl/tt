@@ -1,25 +1,19 @@
-package main
+package cmd
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/maxmoehl/tt"
 	"github.com/spf13/cobra"
-)
-
-const (
-	flagTimestamp = "timestamp"
-	flagTags      = "tags"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:     "start <project> [<task>]",
 	Aliases: []string{"begin"},
-	Short:   "Starts tracking time.",
+	Short:   "Starts tracking time",
 	Long: `Starts tracking time.
 
 With this command you can start time tracking and tag it with a project
@@ -37,68 +31,59 @@ or add seconds if that's your thing:
   09:32:42
 You can also supply a full RFC3339 date-time string.
 
-The cli will check if the
-given start time is valid, e.g. if the last timer that ended, ended before
-the given start.`,
+The cli will check if the given start time is valid, e.g. if the last timer
+that ended, ended before the given start.`,
 	Example: "tt start programming tt --tags private",
-	Run: func(cmd *cobra.Command, args []string) {
-		runStart(getStartParameters(cmd, args))
+	RunE: func(cmd *cobra.Command, args []string) error {
+		quiet, project, task, tags, timestamp, err := getStartParameters(cmd, args)
+		if err != nil {
+			return fmt.Errorf("start: %w", err)
+		}
+		err = runStart(quiet, project, task, tags, timestamp)
+		if err != nil {
+			return fmt.Errorf("start: %w", err)
+		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().StringP(flagTimestamp, string(flagTimestamp[0]), "", "Manually set the start time for a timer")
-	startCmd.Flags().String(flagTags, "", "Specify tags for this timer")
+	startCmd.Flags().StringP(flagTimestamp, string(flagTimestamp[0]), "", "manually set the start time for a timer")
+	startCmd.Flags().String(flagTags, "", "specify tags for this timer")
 }
 
-func runStart(quiet bool, project, task string, tags []string, start time.Time) {
+func runStart(quiet bool, project, task string, tags []string, start time.Time) error {
 	newTimer := tt.Timer{
-		Uuid:    uuid.Must(uuid.NewRandom()),
 		Start:   start,
 		Project: project,
 		Task:    task,
 		Tags:    tags,
 	}
-	err := tt.GetStorage().StoreTimer(newTimer)
+	err := tt.GetDB().SaveTimer(newTimer)
 	if err != nil {
-		tt.PrintError(err, quiet)
+		return err
 	}
 	if !quiet {
 		printTrackingStartedMsg(newTimer)
 	}
+	return nil
 }
 
-func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time) {
-	var err error
-	quiet = getQuiet(cmd)
-	rawTimestamp, err := cmd.LocalFlags().GetString(flagTimestamp)
+func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time, err error) {
+	flags, err := flags(cmd, flagQuiet, flagTags, flagTimestamp)
 	if err != nil {
-		tt.PrintError(err, quiet)
-	}
-	if rawTimestamp != "" {
-		timestamp, err = tt.ParseDate(rawTimestamp)
-		if err != nil {
-			tt.PrintError(err, quiet)
-		}
-	} else {
-		timestamp = time.Now()
-	}
-	rawTags, err := cmd.LocalFlags().GetString(flagTags)
-	if rawTags != "" {
-		tags = strings.Split(rawTags, ",")
-	}
-	if err != nil {
-		tt.PrintError(err, quiet)
+		return
 	}
 	if len(args) < 1 || len(args) > 2 {
-		tt.PrintError(tt.NewErrorf(tt.ErrorNArgumentsAcceptedFormat, "1-2", len(args)), quiet)
+		err = fmt.Errorf("expected 1-2 arguments")
+		return
 	}
 	project = args[0]
 	if len(args) > 1 {
 		task = args[1]
 	}
-	return
+	return flags[flagQuiet].(bool), project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), nil
 }
 
 func printTrackingStartedMsg(t tt.Timer) {

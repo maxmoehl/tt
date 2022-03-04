@@ -1,12 +1,17 @@
 package tt
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 )
 
-func TestGetFilter(t *testing.T) {
+func TestFilterMatch(t *testing.T) {
+
+}
+
+func TestParseFilterString(t *testing.T) {
 	tests := []struct {
 		name         string
 		filterString string
@@ -55,7 +60,7 @@ func TestGetFilter(t *testing.T) {
 			Filter{
 				project: nil,
 				task:    nil,
-				since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.Local),
+				since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.UTC),
 				until:   time.Time{},
 				tags:    nil,
 			},
@@ -68,7 +73,7 @@ func TestGetFilter(t *testing.T) {
 				project: nil,
 				task:    nil,
 				since:   time.Time{},
-				until:   time.Date(2021, 6, 22, 0, 0, 0, 0, time.Local),
+				until:   time.Date(2021, 6, 22, 0, 0, 0, 0, time.UTC),
 				tags:    nil,
 			},
 			false,
@@ -94,6 +99,8 @@ func TestGetFilter(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
+				fmt.Println(got.SQL())
+				fmt.Println(tt.want.SQL())
 				t.Errorf("GetFilter() got = %v, want %v", got, tt.want)
 			}
 		})

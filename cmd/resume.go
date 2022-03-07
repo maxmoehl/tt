@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -22,7 +21,7 @@ If no timer is found an error is returned.`,
 		}
 		err = runResume(quiet, timestamp)
 		if err != nil {
-			return fmt.Errorf("resume: %w", err)
+			return err
 		}
 		return nil
 	},
@@ -34,31 +33,12 @@ func init() {
 }
 
 func runResume(quiet bool, timestamp time.Time) error {
-	var db = tt.GetDB()
-	orderBy := tt.OrderBy{
-		Field: tt.FieldStart,
-		Order: tt.OrderDsc,
-	}
-	var lastTimer tt.Timer
-	err := db.GetTimer(tt.Filter{}, orderBy, &lastTimer)
-	if err != nil && !errors.Is(err, tt.ErrNotFound) {
-		return err
-	}
-	if errors.Is(err, tt.ErrNotFound) {
-		return fmt.Errorf("no timer found")
-	}
-	newTimer := tt.Timer{
-		Start:   timestamp,
-		Project: lastTimer.Project,
-		Task:    lastTimer.Task,
-		Tags:    lastTimer.Tags,
-	}
-	err = db.SaveTimer(newTimer)
+	timer, err := tt.Resume(timestamp)
 	if err != nil {
 		return err
 	}
 	if !quiet {
-		printTrackingStartedMsg(newTimer)
+		printTrackingStartedMsg(timer)
 	}
 	return nil
 }

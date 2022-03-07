@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/maxmoehl/tt"
 	"github.com/spf13/cobra"
 )
@@ -34,6 +35,7 @@ func init() {
 
 func runVacationAdd(half bool, day time.Time) error {
 	v := tt.VacationDay{
+		ID:   uuid.Must(uuid.NewRandom()).String(),
 		Day:  day,
 		Half: half,
 	}

@@ -134,6 +134,7 @@ func printTimersGrouped(groupedTimers map[string]tt.Timers, short bool) {
 		} else {
 			fmt.Printf("### %s ###\n", key)
 			printTimers(groupedTimers[key])
+			fmt.Println()
 		}
 	}
 }
@@ -150,9 +151,9 @@ func printTimersDoubleGrouped(groupedTimers map[string]map[string]tt.Timers, sho
 		}
 		fmt.Printf("### %s ###\n", key)
 		if !short {
-			fmt.Printf("####%s####\n", strings.Repeat("#", len(key)))
+			fmt.Printf("####%s####\n\n", strings.Repeat("#", len(key)))
 		}
-		fmt.Println()
 		printTimersGrouped(groupedTimers[key], short)
+		fmt.Println()
 	}
 }

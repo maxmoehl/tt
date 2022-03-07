@@ -41,7 +41,7 @@ that ended, ended before the given start.`,
 		}
 		err = runStart(quiet, project, task, tags, timestamp)
 		if err != nil {
-			return fmt.Errorf("start: %w", err)
+			return err
 		}
 		return nil
 	},
@@ -53,19 +53,13 @@ func init() {
 	startCmd.Flags().String(flagTags, "", "specify tags for this timer")
 }
 
-func runStart(quiet bool, project, task string, tags []string, start time.Time) error {
-	newTimer := tt.Timer{
-		Start:   start,
-		Project: project,
-		Task:    task,
-		Tags:    tags,
-	}
-	err := tt.GetDB().SaveTimer(newTimer)
+func runStart(quiet bool, project, task string, tags []string, timestamp time.Time) error {
+	timer, err := tt.Start(project, task, tags, timestamp)
 	if err != nil {
 		return err
 	}
 	if !quiet {
-		printTrackingStartedMsg(newTimer)
+		printTrackingStartedMsg(timer)
 	}
 	return nil
 }

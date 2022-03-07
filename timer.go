@@ -8,63 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func (x *GRpcTimer) StartTime() (time.Time, error) {
-	if x == nil {
-		return time.Time{}, nil
-	}
-	return time.Parse(time.RFC3339, x.Start)
-}
-
-func (x *GRpcTimer) StopTime() (time.Time, error) {
-	if x == nil || x.Stop == "" {
-		return time.Time{}, nil
-	}
-	return time.Parse(time.RFC3339, x.Stop)
-}
-
-func (x *GRpcTimer) Validate() error {
-	if x == nil {
-		return fmt.Errorf("%w: nil", ErrInvalidTimer)
-	}
-	if _, err := uuid.Parse(x.Id); err != nil {
-		return fmt.Errorf("%w: id is not a valid uuid", ErrInvalidTimer)
-	}
-	// can never be zero
-	if t, err := x.StartTime(); err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidTimer, err.Error())
-	} else if t.IsZero() {
-		return fmt.Errorf("%w: start time is zero", ErrInvalidTimer)
-	}
-	// can be zero, but needs to be valid if it's present
-	if _, err := x.StopTime(); err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidTimer, err.Error())
-	}
-	if x.Project == "" {
-		return fmt.Errorf("%w: project is an empty string", ErrInvalidTimer)
-	}
-	return nil
-}
-
-// Duration returns the duration that the timer has been running.
-// If the timer is still running it will return the time it has run
-// until now.
-func (x *GRpcTimer) Duration() (time.Duration, error) {
-	if x == nil {
-		return 0, nil
-	}
-	err := x.Validate()
-	if err != nil {
-		return 0, err
-	}
-	stop, _ := x.StopTime()
-	start, _ := x.StartTime()
-	if stop.IsZero() {
-		return time.Now().Sub(start), nil
-	} else {
-		return stop.Sub(start), nil
-	}
-}
-
 // Timer is the central type that stores a timer and all its relevant
 // values
 type Timer struct {

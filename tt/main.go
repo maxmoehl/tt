@@ -6,8 +6,10 @@ import (
 	"github.com/maxmoehl/tt/cmd"
 )
 
+var version = "dev"
+
 func main() {
-	err := cmd.GetRootCmd().Execute()
+	err := cmd.RootCmd(version).Execute()
 	if err != nil {
 		// the error will be printed by cobra
 		os.Exit(1)

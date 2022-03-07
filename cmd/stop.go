@@ -34,7 +34,7 @@ started, started before the given stop.`,
 		}
 		err = runStop(quiet, timestamp)
 		if err != nil {
-			return fmt.Errorf("stop: %w", err)
+			return err
 		}
 		return nil
 	},
@@ -46,26 +46,12 @@ func init() {
 }
 
 func runStop(quiet bool, timestamp time.Time) error {
-	db := tt.GetDB()
-	orderBy := tt.OrderBy{
-		Field: tt.FieldStart,
-		Order: tt.OrderDsc,
-	}
-	var timer tt.Timer
-	err := db.GetTimer(tt.Filter{}, orderBy, &timer)
-	if err != nil {
-		return err
-	}
-	if !timer.Running() {
-		return err
-	}
-	timer.Stop = &timestamp
-	err = db.UpdateTimer(timer)
+	timer, err := tt.Stop(timestamp)
 	if err != nil {
 		return err
 	}
 	if !quiet {
-		fmt.Printf("You worked for %s! Good job.\n", timer.Duration().Round(time.Second).String())
+		fmt.Printf("You worked for %s. Good job!\n", timer.Duration().Round(time.Second).String())
 	}
 	return nil
 }

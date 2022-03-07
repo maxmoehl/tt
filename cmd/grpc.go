@@ -1,10 +1,13 @@
+//go:build grpc
+
 package cmd
 
 import (
 	"fmt"
 	"net"
 
-	"github.com/maxmoehl/tt"
+	ttGrpc "github.com/maxmoehl/tt/grpc"
+
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
@@ -12,8 +15,14 @@ import (
 var grpcCmd = &cobra.Command{
 	Use:   "grpc",
 	Short: "[alpha] Launch a gRPC server",
-	RunE: func(_ *cobra.Command, _ []string) error {
-		err := runGrpc()
+	Long: `[alpha] Launch a gRPC server. So far it's not actually
+doing anything and it's just here as a dummy/test functionality.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		port, err := getGrpcParameters(cmd, args)
+		if err != nil {
+			return fmt.Errorf("grpc: %w", err)
+		}
+		err = runGrpc(port)
 		if err != nil {
 			return fmt.Errorf("grpc: %w", err)
 		}
@@ -25,13 +34,20 @@ func init() {
 	rootCmd.AddCommand(grpcCmd)
 }
 
-func runGrpc() error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 8080))
+func runGrpc(port int) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return err
 	}
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-	tt.RegisterTtServer(grpcServer, &tt.GrpcServer{})
+	grpcServer := grpc.NewServer()
+	ttGrpc.RegisterTtServer(grpcServer, &ttGrpc.Server{})
 	return grpcServer.Serve(lis)
+}
+
+func getGrpcParameters(cmd *cobra.Command, _ []string) (port int, err error) {
+	flags, err := flags(cmd, flagPort)
+	if err != nil {
+		return
+	}
+	return flags[flagPort].(int), nil
 }

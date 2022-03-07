@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	ErrInvalidData    = fmt.Errorf("invalid data [00]")
-	ErrInternalError  = fmt.Errorf("internal error [01]")
+	ErrInvalidData = fmt.Errorf("invalid data [00]")
+	// ErrInternal indicates an error with the database
+	ErrInternal       = fmt.Errorf("internal error [01]")
 	ErrNotFound       = fmt.Errorf("not found [02]")
 	ErrInvalidFormat  = fmt.Errorf("invalid format [03]")
 	ErrNotImplemented = fmt.Errorf("not implemented [04]")

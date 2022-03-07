@@ -7,8 +7,8 @@ import (
 // version to be set during build process:
 //   go install \
 //     -ldflags "-X main.version=vMAJOR.MINOR.PATCH-label" \
+//     -tags "json1"
 //     github.com/maxmoehl/tt/tt
-var version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:   "tt",
@@ -20,13 +20,13 @@ functionality.
 
 Note: Timers cannot overlap. If there are overlapping timers
 the application might fail and statistics or analytics may be wrong.`,
-	Version: version,
 }
 
 func init() {
 	rootCmd.PersistentFlags().BoolP(flagQuiet, string(flagQuiet[0]), false, "suppress all output")
 }
 
-func GetRootCmd() *cobra.Command {
+func RootCmd(version string) *cobra.Command {
+	rootCmd.Version = version
 	return rootCmd
 }

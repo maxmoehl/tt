@@ -22,6 +22,8 @@ const (
 	flagGroupBy = "group-by"
 	// flagHalf return type bool
 	flagHalf = "half"
+	// flagPort return type int
+	flagPort = "port"
 	// flagQuiet return type bool
 	flagQuiet = "quiet"
 	// flagRemove return type bool
@@ -39,6 +41,7 @@ var flagGetter = map[string]func(cmd *cobra.Command) (interface{}, error){
 	flagFilter:    getFilterFlag,
 	flagGroupBy:   getStringFlag(flagGroupBy),
 	flagHalf:      getBoolFlag(flagHalf),
+	flagPort:      getIntFlag(flagPort),
 	flagQuiet:     getBoolFlag(flagQuiet),
 	flagRemove:    getBoolFlag(flagRemove),
 	flagShort:     getBoolFlag(flagShort),
@@ -75,6 +78,12 @@ func flags(cmd *cobra.Command, flags ...string) (map[string]interface{}, error) 
 func getBoolFlag(name string) func(cmd *cobra.Command) (interface{}, error) {
 	return func(cmd *cobra.Command) (interface{}, error) {
 		return cmd.Flags().GetBool(name)
+	}
+}
+
+func getIntFlag(name string) func(cmd *cobra.Command) (interface{}, error) {
+	return func(cmd *cobra.Command) (interface{}, error) {
+		return cmd.Flags().GetInt(name)
 	}
 }
 

@@ -1,6 +1,7 @@
 package tt
 
 import (
+	"encoding/csv"
 	"fmt"
 	"strings"
 	"time"
@@ -8,8 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Timer is the central type that stores a timer and all its relevant
-// values
+// Timer is the central type that stores a timer and all its relevant values.
 type Timer struct {
 	ID      string     `json:"id"`
 	Start   time.Time  `json:"start"`
@@ -35,9 +35,8 @@ func (t Timer) Validate() error {
 	return nil
 }
 
-// Duration returns the duration that the timer has been running.
-// If the timer is still running it will return the time it has run
-// until now.
+// Duration returns the duration that the timer has been running. If the timer
+// is still running it will return the time it has run until now.
 func (t Timer) Duration() time.Duration {
 	if t.Stop == nil {
 		return time.Now().Sub(t.Start)
@@ -102,4 +101,49 @@ func (t Timer) groupByKey(f GroupByOption) string {
 	default:
 		panic(fmt.Sprintf("%s is not a group by field", f))
 	}
+}
+
+// Timers stores a list of timers to attach functions to it.
+type Timers []Timer
+
+func (timers Timers) Duration() (d time.Duration) {
+	for _, t := range timers {
+		d += t.Duration()
+	}
+	return
+}
+
+// CSV exports all timers as a csv string
+func (timers Timers) CSV() (string, error) {
+	b := strings.Builder{}
+	w := csv.NewWriter(&b)
+	err := w.Write([]string{"uuid", "start", "end", "project", "task", "tags"})
+	if err != nil {
+		return "", err
+	}
+	for _, t := range timers {
+		err = w.Write([]string{t.ID, t.Start.String(), t.Stop.String(), t.Project, t.Task, strings.Join(t.Tags, ",")})
+		if err != nil {
+			return "", err
+		}
+	}
+	w.Flush()
+	err = w.Error()
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+func (timers Timers) GroupBy(field GroupByOption) map[string]Timers {
+	grouped := make(map[string]Timers)
+	for _, t := range timers {
+		key := t.groupByKey(field)
+		if _, ok := grouped[key]; ok {
+			grouped[key] = append(grouped[key], t)
+		} else {
+			grouped[key] = Timers{t}
+		}
+	}
+	return grouped
 }

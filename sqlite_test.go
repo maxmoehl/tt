@@ -44,7 +44,7 @@ func TestSaveInvalidTimerEmptyProject(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected non-nil error but got nil")
 	}
-	if !errors.Is(ErrInvalidTimer, err) {
+	if !errors.Is(err, ErrInvalidTimer) {
 		t.Fatalf("expected error to contain '%s', but got '%s'", ErrInvalidTimer, err.Error())
 	}
 }

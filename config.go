@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	// HomeDirEnv stores the name of the environment variable that
-	// contains the path to the home directory of this cli.
+	// HomeDirEnv stores the name of the environment variable that contains the
+	// path to the home directory of this cli.
 	HomeDirEnv = "TT_HOME_DIR"
 )
 
@@ -20,7 +20,8 @@ var (
 
 // Config holds all available configuration values.
 type Config struct {
-	// Precision sets how precise the stats should be evaluated. Available values are: [s second m minute h hour]
+	// Precision sets how precise the stats should be evaluated. Available
+	// values are: [s second m minute h hour]
 	// Default: second
 	Precision string `json:"precision"`
 	Timeclock struct {
@@ -57,7 +58,7 @@ func (c Config) GetPrecision() time.Duration {
 	}
 }
 
-// GetConfig returns the current Config
+// GetConfig returns the current Config and lazy loads it if necessary.
 func GetConfig() Config {
 	if c == nil {
 		err := LoadConfig()
@@ -68,8 +69,8 @@ func GetConfig() Config {
 	return *c
 }
 
-// HomeDir returns the path to the directory that contains storage
-// and configuration files.
+// HomeDir returns the path to the directory that contains storage and
+// configuration files.
 func (Config) HomeDir() string {
 	ttHomeDir := os.Getenv(HomeDirEnv)
 	if ttHomeDir == "" {

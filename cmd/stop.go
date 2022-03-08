@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/maxmoehl/tt"
@@ -51,7 +52,7 @@ func runStop(quiet bool, timestamp time.Time) error {
 		return err
 	}
 	if !quiet {
-		fmt.Printf("You worked for %s. Good job!\n", timer.Duration().Round(time.Second).String())
+		printTrackingStoppedMsg(timer)
 	}
 	return nil
 }
@@ -62,4 +63,16 @@ func getStopParameters(cmd *cobra.Command, _ []string) (quiet bool, timestamp ti
 		return
 	}
 	return flags[flagQuiet].(bool), flags[flagTimestamp].(time.Time), nil
+}
+
+func printTrackingStoppedMsg(t tt.Timer) {
+	fmt.Printf("[%02d:%02d] Tracking stopped!\n", t.Stop.Hour(), t.Stop.Minute())
+	fmt.Printf("  start  : %02d:%02d", t.Start.Hour(), t.Start.Minute())
+	fmt.Printf("  project: %s\n", t.Project)
+	if t.Task != "" {
+		fmt.Printf("  task   : %s\n", t.Task)
+	}
+	if len(t.Tags) > 0 {
+		fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ", "))
+	}
 }

@@ -17,9 +17,9 @@ func (v VacationDay) String() string {
 	return fmt.Sprintf("ID  : %s\nDay : %s\nHalf: %t", v.ID, v.Day.String(), v.Half)
 }
 
-// ParseDayString parses the given day string and expects the format YYYY-MM-DD. The
-// returned time is always in timezone UTC to avoid daylight-saving-time issues when
-// adding/subtracting days.
+// ParseDayString parses the given day string and expects the format YYYY-MM-DD.
+// The returned time is always in timezone UTC to avoid daylight-saving-time
+// issues when adding/subtracting days.
 func ParseDayString(dayStr string) (time.Time, error) {
 	dayParts := strings.Split(dayStr, "-")
 	if len(dayParts) != 3 {

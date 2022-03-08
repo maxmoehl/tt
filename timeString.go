@@ -9,9 +9,8 @@ import (
 
 var datePattern = regexp.MustCompile(`((\d{4})[-/.](\d{1,2})[-/.](\d{1,2}))?([T ])?(\d{1,2}):(\d{1,2}):?(\d{1,2})?`)
 
-// ParseDate will take in a string that contains a time in some
-// format and try to guess the missing parts. Currently, the following
-// cases are supported:
+// ParseDate will take in a string that contains a time in some format and try
+// to guess the missing parts. Currently, the following cases are supported:
 // - 15:04
 // - 15:04:05
 // - 2006/01/02 15:04
@@ -20,8 +19,8 @@ var datePattern = regexp.MustCompile(`((\d{4})[-/.](\d{1,2})[-/.](\d{1,2}))?([T 
 // valid time separators: colon
 // valid separators between date and time: space, upper-case t
 //
-// more general information will be taken from time.Now() (e.g. day or
-// year) and more specific information (e.g. seconds) will be set to zero.
+// more general information will be taken from time.Now() (e.g. day or year) and
+// more specific information (e.g. seconds) will be set to zero.
 func ParseDate(in string) (time.Time, error) {
 	// if we can parse as RFC3339 we just return it
 	t, err := time.Parse(time.RFC3339, in)

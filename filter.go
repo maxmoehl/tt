@@ -22,9 +22,8 @@ const (
 	DateFormat = "2006-01-02"
 )
 
-// Filter contains all available filters. If a value is empty (i.e. ""
-// or nil) it is assumed that the Filter is not set and all values are
-// included.
+// Filter contains all available filters. If a value is empty (i.e. "" or nil)
+// it is assumed that the Filter is not set and all values are included.
 type Filter struct {
 	// project contains all project names that should be included. Accepts
 	// multiple values. Project Filter can be set with the keyword 'project'.
@@ -77,9 +76,9 @@ func (f Filter) Timers(timers Timers) (filtered Timers) {
 	return
 }
 
-// SQL returns the WHERE clause that can be used to match timers using this filter.
-// A known limitation is that filtering for tags is not supported because of the
-// way the tags are stored in the database.
+// SQL returns the WHERE clause that can be used to match timers using this
+// filter. A known limitation is that filtering for tags is not supported
+// because of the way the tags are stored in the database.
 func (f Filter) SQL() string {
 	var filters []string
 	projects := convertFilterToSql("project", f.project, sqlOperatorEquals)
@@ -102,19 +101,19 @@ func (f Filter) SQL() string {
 	}
 	// if there are no filters return TRUE to match all values
 	if len(filters) == 0 {
-		return "TRUE"
+		return ""
 	}
-	return strings.Join(filters, " AND ")
+	return "WHERE " + strings.Join(filters, " AND ")
 }
 
-// ParseFilterString takes a string and creates a Filter from it. The
-// Filter string has to be in the following format:
+// ParseFilterString takes a string and creates a Filter from it. The Filter
+// string has to be in the following format:
 //
 //   filterName=values;filterName=values;...
 //
-// each filterName consists of a string, values contains the Filter
-// value. Some filters only accept a single value, others accept multiple
-// values separated by commas.
+// each filterName consists of a string, values contains the Filter value. Some
+// filters only accept a single value, others accept multiple values separated
+// by commas.
 //
 // Example:
 //   project=work,school;since=2020-01-01;until=2020-02-01
@@ -127,8 +126,7 @@ func (f Filter) SQL() string {
 //   until  : accepts a single string int the format of yyyy-MM-dd
 //   tags   : accepts multiple string values
 //
-// since and until are inclusive, both dates will be included in filtered
-// data.
+// since and until are inclusive, both dates will be included in filtered data.
 // TODO: increase usability by allowing more relaxed values (e.g. 'today', 'yesterday' for since/until)
 func ParseFilterString(filterString string) (Filter, error) {
 	var f Filter
@@ -154,8 +152,7 @@ func ParseFilterString(filterString string) (Filter, error) {
 	return f, nil
 }
 
-// NewFilter allows to create a Filter that is not parsed from a Filter
-// string.
+// NewFilter allows to create a Filter that is not parsed from a Filter string.
 func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
 	return Filter{
 		project: projects,
@@ -218,8 +215,8 @@ func parseValuesInto(key, values string, f *Filter) (err error) {
 	return
 }
 
-// stringContainsAny checks if any of the valid values is inside the
-// searchable list.
+// stringContainsAny checks if any of the valid values is inside the searchable
+// list.
 func stringSliceContainsAny(shouldContain []string, toSearch []string) bool {
 	for _, c := range shouldContain {
 		for _, t := range toSearch {
@@ -253,8 +250,8 @@ func convertFilterToSql(key string, values []string, operator string) string {
 	return b.String()
 }
 
-// stringSliceContains checks if the given string is contained in the
-// given string slice.
+// stringSliceContains checks if the given string is contained in the given
+// string slice.
 func stringSliceContains(strings []string, s string) bool {
 	for _, t := range strings {
 		if t == s {

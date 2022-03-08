@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/maxmoehl/tt"
+	
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +19,7 @@ const (
 	flagCopy = "copy"
 	// flagDay return type bool
 	flagDay = "day"
-	// flagFilter returns type tt.Filter
+	// flagFilter return type tt.Filter
 	flagFilter = "filter"
 	// flagGroupBy returns string
 	flagGroupBy = "group-by"
@@ -34,7 +35,7 @@ const (
 	flagResume = "resume"
 	// flagShort return type bool
 	flagShort = "short"
-	// flagTags returns type []string
+	// flagTags return type []string
 	flagTags = "tags"
 	// flagTimestamp return type time.Time
 	flagTimestamp = "timestamp"

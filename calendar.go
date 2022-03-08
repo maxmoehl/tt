@@ -1,6 +1,7 @@
 package tt
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -88,8 +89,8 @@ func (d Day) String() string {
 	}
 }
 
-// correctedWeekday adjusts from Sunday as first day of the week
-// to monday as first day of the week.
+// correctedWeekday adjusts from Sunday as first day of the week to monday as
+// first day of the week.
 func correctedWeekday(weekday time.Weekday) int {
 	if weekday == time.Sunday {
 		return int(time.Saturday)
@@ -98,9 +99,8 @@ func correctedWeekday(weekday time.Weekday) int {
 	}
 }
 
-// IsWorkDay checks if the day should have been worked on.
-// It does not take into account vacation days, but only the
-// configured weekdays.
+// IsWorkDay checks if the day should have been worked on. It does not take into
+// account vacation days, but only the configured weekdays.
 func IsWorkDay(d time.Time) bool {
 	days := GetConfig().Timeclock.DaysPerWeek
 	switch d.Weekday() {
@@ -121,4 +121,23 @@ func IsWorkDay(d time.Time) bool {
 	default:
 		panic(fmt.Sprintf("unknown day of week %d", d.Weekday()))
 	}
+}
+
+// PlannedTime returns the duration that was planned for the given date.
+func PlannedTime(date time.Time) (time.Duration, error) {
+	if !IsWorkDay(date) {
+		return 0, nil
+	}
+	workTime := time.Duration(GetConfig().Timeclock.HoursPerDay) * time.Hour
+	var vac VacationDay
+	err := GetDB().GetVacationDay(date, &vac)
+	if errors.Is(err, ErrNotFound) {
+		return workTime, nil
+	} else if err != nil {
+		return 0, err
+	}
+	if vac.Half {
+		return workTime / 2, nil
+	}
+	return 0, nil
 }

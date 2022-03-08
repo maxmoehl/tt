@@ -20,9 +20,11 @@ type DatabaseFilter interface {
 	SQL() string
 }
 
-type dummyFilter struct{}
+// EmptyFilter is a minimal filter to fulfill the DatabaseFilter interface
+// without actually filtering anything.
+type EmptyFilter struct{}
 
-func (_ dummyFilter) SQL() string { return "TRUE" }
+func (_ EmptyFilter) SQL() string { return "TRUE" }
 
 type sqlite struct {
 	db *sql.DB
@@ -95,7 +97,7 @@ func (db *sqlite) save(table string, id string, value interface{}) error {
 }
 
 func (db *sqlite) getOne(table string, filter DatabaseFilter, orderBy OrderBy, target interface{}) error {
-	selectStmt := fmt.Sprintf("SELECT `json` FROM %s WHERE %s %s;", table, filter.SQL(), orderBy.SQL())
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, filter.SQL(), orderBy.SQL())
 
 	row := db.db.QueryRow(selectStmt)
 	var content string
@@ -129,7 +131,7 @@ func (db *sqlite) getOneById(table string, id string, target interface{}) error 
 }
 
 func (db *sqlite) getMultiple(table string, filter DatabaseFilter, orderBy OrderBy, target interface{}) error {
-	selectStmt := fmt.Sprintf("SELECT `json` FROM %s WHERE %s %s;", table, filter.SQL(), orderBy.SQL())
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, filter.SQL(), orderBy.SQL())
 
 	rows, err := db.db.Query(selectStmt)
 	if err != nil {
@@ -238,7 +240,7 @@ func (db *sqlite) GetVacationDay(day time.Time, vacationDay *VacationDay) error 
 }
 
 func (db *sqlite) GetVacationDays(orderBy OrderBy, vacationDays *[]VacationDay) error {
-	return db.getMultiple(tableVacationDays, dummyFilter{}, orderBy, vacationDays)
+	return db.getMultiple(tableVacationDays, EmptyFilter{}, orderBy, vacationDays)
 }
 
 func (db *sqlite) RemoveVacationDay(id string) error {

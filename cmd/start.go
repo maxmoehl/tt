@@ -50,11 +50,11 @@ The cli will check if the given start time is valid, e.g. if the last timer
 that ended, ended before the given start.`,
 	Example: "tt start programming tt --tags private",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, project, task, tags, timestamp, copy, resume, err := getStartParameters(cmd, args)
+		quiet, project, task, tags, timestamp, copyFrom, resume, err := getStartParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
-		err = runStart(quiet, project, task, tags, timestamp, copy, resume)
+		err = runStart(quiet, project, task, tags, timestamp, copyFrom, resume)
 		if err != nil {
 			return err
 		}
@@ -73,20 +73,20 @@ func init() {
 	//       how does this relate to the copy option?
 }
 
-func runStart(quiet bool, project, task string, tags []string, timestamp time.Time, copy int, resume bool) error {
-	if resume && copy > 0 {
+func runStart(quiet bool, project, task string, tags []string, timestamp time.Time, copyFrom int, resume bool) error {
+	if resume && copyFrom > 0 {
 		return fmt.Errorf("start: %w: cannot have copy and resume", tt.ErrInvalidParameters)
 	}
 	if resume {
-		copy = 1
+		copyFrom = 1
 	}
 	// if we are copying, and we only have a project, the order is reversed
 	// so the project becomes the task.
-	if copy > 0 && task == "" {
+	if copyFrom > 0 && task == "" {
 		task = project
 		project = ""
 	}
-	timer, err := tt.Start(project, task, tags, timestamp, copy)
+	timer, err := tt.Start(project, task, tags, timestamp, copyFrom)
 	if err != nil {
 		return err
 	}
@@ -97,15 +97,14 @@ func runStart(quiet bool, project, task string, tags []string, timestamp time.Ti
 }
 
 func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time, copy int, resume bool, err error) {
+	// TODO: could we also add a --interactive | -i mode that collects the information from stdin with autocomplete?
 	flags, err := flags(cmd, flagQuiet, flagTags, flagTimestamp, flagCopy, flagResume)
 	if err != nil {
 		return
 	}
-	if len(args) < 1 || len(args) > 2 {
-		err = fmt.Errorf("expected 1-2 arguments")
-		return
+	if len(args) > 0 {
+		project = args[0]
 	}
-	project = args[0]
 	if len(args) > 1 {
 		task = args[1]
 	}

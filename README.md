@@ -27,7 +27,7 @@ server. However, this roughly doubles the size of the resulting binary from arou
 $ go install -tags "json1" github.com/maxmoehl/tt@latest
 ```
 
-If you already installed a version, you can check with the --version flag which version
+If you already installed a version, you can check with the `--version` flag which version
 you have installed.
 
 ```

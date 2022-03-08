@@ -139,9 +139,7 @@ func plannedTime(from time.Time, to time.Time) (time.Duration, error) {
 	to = to.AddDate(0, 0, 1)
 	var d time.Duration
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
-		if workday, err := isWorkDay(from); err != nil {
-			return 0, err
-		} else if !workday {
+		if !tt.IsWorkDay(from) {
 			continue
 		}
 		var vac tt.VacationDay
@@ -160,29 +158,4 @@ func plannedTime(from time.Time, to time.Time) (time.Duration, error) {
 		}
 	}
 	return d, nil
-}
-
-// isWorkDay checks if the day should have been worked on.
-// It does not take into account vacation days, but only the
-// configured weekdays.
-func isWorkDay(d time.Time) (bool, error) {
-	days := tt.GetConfig().Timeclock.DaysPerWeek
-	switch d.Weekday() {
-	case time.Monday:
-		return days.Monday, nil
-	case time.Tuesday:
-		return days.Tuesday, nil
-	case time.Wednesday:
-		return days.Wednesday, nil
-	case time.Thursday:
-		return days.Thursday, nil
-	case time.Friday:
-		return days.Friday, nil
-	case time.Saturday:
-		return days.Saturday, nil
-	case time.Sunday:
-		return days.Sunday, nil
-	default:
-		return false, fmt.Errorf("unknown day of week %d", d.Weekday())
-	}
 }

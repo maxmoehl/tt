@@ -1,35 +1,31 @@
 package tt
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-func Resume(timestamp time.Time) (Timer, error) {
+func Start(project, task string, tags []string, timestamp time.Time, copy int) (Timer, error) {
 	db := GetDB()
 	orderBy := OrderBy{
 		Field: FieldStart,
 		Order: OrderDsc,
 	}
-	var timer Timer
-	err := db.GetTimer(Filter{}, orderBy, &timer)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		return Timer{}, fmt.Errorf("resume: %w", err)
+	var baseTimer Timer
+	if copy > 0 {
+		var timers Timers
+		err := db.GetTimers(Filter{}, orderBy, &timers)
+		if err != nil {
+			return Timer{}, fmt.Errorf("start: %w", err)
+		}
+		if len(timers) < copy {
+			return Timer{}, fmt.Errorf("start: copy from timer: %w", ErrNotFound)
+		}
+		baseTimer = timers[copy-1]
 	}
-	timer.ID = uuid.Must(uuid.NewRandom()).String()
-	timer.Start = timestamp
-	timer.Stop = nil
-	err = db.SaveTimer(timer)
-	if err != nil {
-		return Timer{}, fmt.Errorf("resume: %w", err)
-	}
-	return timer, nil
-}
 
-func Start(project, task string, tags []string, timestamp time.Time) (Timer, error) {
 	t := Timer{
 		ID:      uuid.Must(uuid.NewRandom()).String(),
 		Start:   timestamp,
@@ -37,6 +33,18 @@ func Start(project, task string, tags []string, timestamp time.Time) (Timer, err
 		Task:    task,
 		Tags:    tags,
 	}
+
+	// copy values if they haven't been provided, and we should copy
+	if copy > 0 && t.Project == "" {
+		t.Project = baseTimer.Project
+	}
+	if copy > 0 && t.Task == "" {
+		t.Task = baseTimer.Task
+	}
+	if copy > 0 && len(t.Tags) == 0 {
+		t.Tags = baseTimer.Tags
+	}
+
 	err := t.Validate()
 	if err != nil {
 		return Timer{}, fmt.Errorf("start: %w", err)

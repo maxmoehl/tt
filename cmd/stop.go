@@ -11,22 +11,22 @@ import (
 var stopCmd = &cobra.Command{
 	Use:     "stop",
 	Aliases: []string{"end"},
-	Short:   "Stops a timer",
-	Long: `This command stops the current timer. If the timer is currently in a break
-the break is also ended without further notice.
+	Short:   "Stops the current timer",
+	Long: `Stops the current timer.
 
-If you want to manually set a stop time it should look something like
-this:
+If you want to manually set a stop time it should look something like this:
   2020-04-19 08:00
+  2020-04-19T08:00
+
 you can also omit the date, the current date will be used:
   08:00
+
 or add seconds if that's your thing:
   09:32:42
+
 You can also supply a full RFC3339 date-time string.
 
-Otherwise an appropriate error will be printed. The cli will check if the
-given stop time is valid, e.g. if the last timer and break that were
-started, started before the given stop.`,
+Otherwise an appropriate error will be printed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quiet, timestamp, err := getStopParameters(cmd, args)
 		if err != nil {

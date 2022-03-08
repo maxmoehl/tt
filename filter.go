@@ -129,6 +129,7 @@ func (f Filter) SQL() string {
 //
 // since and until are inclusive, both dates will be included in filtered
 // data.
+// TODO: increase usability by allowing more relaxed values (e.g. 'today', 'yesterday' for since/until)
 func ParseFilterString(filterString string) (Filter, error) {
 	var f Filter
 	if len(filterString) == 0 {

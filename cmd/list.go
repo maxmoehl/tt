@@ -22,31 +22,26 @@ var listCmd = &cobra.Command{
 	Long: `List all existing timers.
 
 The filter (if provided) has to be in the following format:
-
   filterName=values;filterName=values;...
 
-Each filterName consists of a string, values contains the filter value.
-Some filters only accept a single value, others accept multiple values
-separated by commas.
+Each filterName consists of a string, values contains the filter value. Some
+filters only accept a single value, others accept multiple values separated by
+commas.
 
 Example:
-
   projectName=work,school;since=2020-01-01;until=2020-02-01
 
 Available filters are:
-
   project: accepts multiple string values
   task   : accepts multiple string values
   since  : accepts a single string int the format of yyyy-MM-dd
   until  : accepts a single string int the format of yyyy-MM-dd
   tags   : accepts multiple string values
 
-since and until are inclusive, both dates will be included in filtered
-data.
+since and until are inclusive, both dates will be included in filtered data.
 
-The group-by string is a comma separated list of groups that should be
-formed. Available values are:
-
+The group-by string is a comma separated list of groups that should be formed.
+Available values are:
   project: Show time by project
   tasks  : Show time by task, automatically sets project
   days   : Show report for each day`,

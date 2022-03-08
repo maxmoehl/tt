@@ -13,8 +13,8 @@ var vacationCmd = &cobra.Command{
 	Short:   "Modify vacation days for timeclock",
 	Long: `Modify vacation days for timeclock.
 
-Allows you to specify days which will be considered vacation and therefore
-not be included in the statistics.`,
+Allows you to specify days which will be considered vacation and therefore not
+be included in the statistics.`,
 }
 
 func init() {

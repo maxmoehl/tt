@@ -18,8 +18,8 @@ var rootCmd = &cobra.Command{
 See the help sections of the individual commands for more details on the
 functionality.
 
-Note: Timers cannot overlap. If there are overlapping timers
-the application might fail and statistics or analytics may be wrong.`,
+Note: Timers cannot overlap. If there are overlapping timers the application
+might fail and statistics or analytics may be wrong.`,
 }
 
 func init() {

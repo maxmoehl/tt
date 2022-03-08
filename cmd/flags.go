@@ -14,6 +14,8 @@ import (
 //       `type=bool` and we generate most of the code below based on that.
 //       we could have functions to register flags with ease and have common usages etc.
 const (
+	// flagCopy return type string
+	flagCopy = "copy"
 	// flagDay return type bool
 	flagDay = "day"
 	// flagFilter returns type tt.Filter
@@ -28,6 +30,8 @@ const (
 	flagQuiet = "quiet"
 	// flagRemove return type bool
 	flagRemove = "rm"
+	// flagResume return type bool
+	flagResume = "resume"
 	// flagShort return type bool
 	flagShort = "short"
 	// flagTags returns type []string
@@ -37,6 +41,7 @@ const (
 )
 
 var flagGetter = map[string]func(cmd *cobra.Command) (interface{}, error){
+	flagCopy:      getIntFlag(flagCopy),
 	flagDay:       getBoolFlag(flagDay),
 	flagFilter:    getFilterFlag,
 	flagGroupBy:   getStringFlag(flagGroupBy),
@@ -44,6 +49,7 @@ var flagGetter = map[string]func(cmd *cobra.Command) (interface{}, error){
 	flagPort:      getIntFlag(flagPort),
 	flagQuiet:     getBoolFlag(flagQuiet),
 	flagRemove:    getBoolFlag(flagRemove),
+	flagResume:    getBoolFlag(flagResume),
 	flagShort:     getBoolFlag(flagShort),
 	flagTags:      getTagsFlag,
 	flagTimestamp: getTimestampFlag,

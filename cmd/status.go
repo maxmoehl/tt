@@ -12,8 +12,7 @@ import (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Prints a short notice on the current status",
-	Long: `Reports if you are currently working, taking a break or taking some
-time off.`,
+	Long:  `Reports if you are currently working, taking a break or taking some time off.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quiet, short, err := getStatusParameters(cmd, args)
 		if err != nil {
@@ -55,7 +54,7 @@ func runStatus(quiet, short bool) error {
 		timingFor := tt.FormatDuration(time.Now().Sub(lastTimer.Start), tt.GetConfig().GetPrecision())
 		if lastTimer.Task != "" {
 			if short {
-				fmt.Printf("tracking %s, %s for %s\n", lastTimer.Project, lastTimer.Task, timingFor)
+				fmt.Printf("%s / %s / %s\n", lastTimer.Project, lastTimer.Task, timingFor)
 			} else {
 				fmt.Printf("Currently timing project %s with task %s for %s, you're doing good!\n", lastTimer.Project, lastTimer.Task, timingFor)
 			}

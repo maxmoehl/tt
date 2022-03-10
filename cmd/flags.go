@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/maxmoehl/tt"
-	
+
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +25,8 @@ const (
 	flagGroupBy = "group-by"
 	// flagHalf return type bool
 	flagHalf = "half"
+	// flagInteractive return type bool
+	flagInteractive = "interactive"
 	// flagPort return type int
 	flagPort = "port"
 	// flagQuiet return type bool
@@ -42,23 +44,24 @@ const (
 )
 
 var flagGetter = map[string]func(cmd *cobra.Command) (interface{}, error){
-	flagCopy:      getIntFlag(flagCopy),
-	flagDay:       getBoolFlag(flagDay),
-	flagFilter:    getFilterFlag,
-	flagGroupBy:   getStringFlag(flagGroupBy),
-	flagHalf:      getBoolFlag(flagHalf),
-	flagPort:      getIntFlag(flagPort),
-	flagQuiet:     getBoolFlag(flagQuiet),
-	flagRemove:    getBoolFlag(flagRemove),
-	flagResume:    getBoolFlag(flagResume),
-	flagShort:     getBoolFlag(flagShort),
-	flagTags:      getTagsFlag,
-	flagTimestamp: getTimestampFlag,
+	flagCopy:        getIntFlag(flagCopy),
+	flagDay:         getBoolFlag(flagDay),
+	flagFilter:      getFilterFlag,
+	flagGroupBy:     getStringFlag(flagGroupBy),
+	flagHalf:        getBoolFlag(flagHalf),
+	flagInteractive: getBoolFlag(flagInteractive),
+	flagPort:        getIntFlag(flagPort),
+	flagQuiet:       getBoolFlag(flagQuiet),
+	flagRemove:      getBoolFlag(flagRemove),
+	flagResume:      getBoolFlag(flagResume),
+	flagShort:       getBoolFlag(flagShort),
+	flagTags:        getTagsFlag,
+	flagTimestamp:   getTimestampFlag,
 }
 
 func short(flag string) string {
 	switch flag {
-	case flagDay, flagFilter, flagGroupBy, flagQuiet, flagShort, flagTimestamp:
+	case flagDay, flagFilter, flagGroupBy, flagQuiet, flagShort, flagTimestamp, flagInteractive, flagCopy, flagResume:
 		return string([]rune(flag)[0])
 	case flagRemove:
 		return ""

@@ -67,12 +67,13 @@ func getStopParameters(cmd *cobra.Command, _ []string) (quiet bool, timestamp ti
 
 func printTrackingStoppedMsg(t tt.Timer) {
 	fmt.Printf("[%02d:%02d] Tracking stopped!\n", t.Stop.Hour(), t.Stop.Minute())
-	fmt.Printf("  start  : %02d:%02d", t.Start.Hour(), t.Start.Minute())
-	fmt.Printf("  project: %s\n", t.Project)
+	fmt.Printf("  start   : %02d:%02d\n", t.Start.Hour(), t.Start.Minute())
+	fmt.Printf("  project : %s\n", t.Project)
 	if t.Task != "" {
-		fmt.Printf("  task   : %s\n", t.Task)
+		fmt.Printf("  task    : %s\n", t.Task)
 	}
 	if len(t.Tags) > 0 {
-		fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ", "))
+		fmt.Printf("  tags    : %s\n", strings.Join(t.Tags, ","))
 	}
+	fmt.Printf("  duration: %s\n", tt.FormatDuration(t.Duration(), tt.GetConfig().GetPrecision()))
 }

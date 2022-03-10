@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/maxmoehl/tt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -139,23 +139,11 @@ func plannedTime(from time.Time, to time.Time) (time.Duration, error) {
 	to = to.AddDate(0, 0, 1)
 	var d time.Duration
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
-		if !tt.IsWorkDay(from) {
-			continue
-		}
-		var vac tt.VacationDay
-		err := tt.GetDB().GetVacationDay(from, &vac)
-		if err != nil && !errors.Is(err, tt.ErrNotFound) {
+		t, err := tt.PlannedTime(from)
+		if err != nil {
 			return 0, err
 		}
-		if errors.Is(err, tt.ErrNotFound) {
-			// no vacation day found
-			d += time.Duration(tt.GetConfig().Timeclock.HoursPerDay) * time.Hour
-			continue
-		}
-		if vac.Half {
-			// vacation day found but it is only half a day
-			d += (time.Duration(tt.GetConfig().Timeclock.HoursPerDay) * time.Hour) / 2
-		}
+		d += t
 	}
 	return d, nil
 }

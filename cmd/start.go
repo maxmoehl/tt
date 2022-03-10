@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/maxmoehl/tt"
+
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -50,11 +52,11 @@ The cli will check if the given start time is valid, e.g. if the last timer
 that ended, ended before the given start.`,
 	Example: "tt start programming tt --tags private",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, project, task, tags, timestamp, copyFrom, resume, err := getStartParameters(cmd, args)
+		quiet, project, task, tags, timestamp, copyFrom, err := getStartParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
-		err = runStart(quiet, project, task, tags, timestamp, copyFrom, resume)
+		err = runStart(quiet, project, task, tags, timestamp, copyFrom)
 		if err != nil {
 			return err
 		}
@@ -64,22 +66,17 @@ that ended, ended before the given start.`,
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().StringP(flagTimestamp, string(flagTimestamp[0]), "", "manually set the start time for a timer")
+	startCmd.Flags().StringP(flagTimestamp, short(flagTimestamp), "", "manually set the start time for a timer")
 	startCmd.Flags().String(flagTags, "", "specify tags for this timer")
-	startCmd.Flags().IntP(flagCopy, string(flagCopy[0]), 0, "copy values from a specific timer")
-	startCmd.Flags().BoolP(flagResume, string(flagResume[0]), false, "copy values from the previous timer")
+	startCmd.Flags().IntP(flagCopy, short(flagCopy), 0, "copy values from a specific timer")
+	startCmd.Flags().BoolP(flagResume, short(flagResume), false, "copy values from the previous timer")
+	startCmd.Flags().BoolP(flagInteractive, short(flagInteractive), false, "collect values from stdin")
 
 	// TODO: --auto-stop (or something like this) to stop the previous timer automatically and start a new one
 	//       how does this relate to the copy option?
 }
 
-func runStart(quiet bool, project, task string, tags []string, timestamp time.Time, copyFrom int, resume bool) error {
-	if resume && copyFrom > 0 {
-		return fmt.Errorf("start: %w: cannot have copy and resume", tt.ErrInvalidParameters)
-	}
-	if resume {
-		copyFrom = 1
-	}
+func runStart(quiet bool, project, task string, tags []string, timestamp time.Time, copyFrom int) error {
 	// if we are copying, and we only have a project, the order is reversed
 	// so the project becomes the task.
 	if copyFrom > 0 && task == "" {
@@ -96,11 +93,17 @@ func runStart(quiet bool, project, task string, tags []string, timestamp time.Ti
 	return nil
 }
 
-func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time, copy int, resume bool, err error) {
-	// TODO: could we also add a --interactive | -i mode that collects the information from stdin with autocomplete?
-	flags, err := flags(cmd, flagQuiet, flagTags, flagTimestamp, flagCopy, flagResume)
+func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time, copy int, err error) {
+	flags, err := flags(cmd, flagQuiet, flagTags, flagTimestamp, flagCopy, flagResume, flagInteractive)
 	if err != nil {
 		return
+	}
+	if flags[flagInteractive].(bool) {
+		project, task, timestamp, tags, err = getStartParametersInteractive()
+		return
+	}
+	if flags[flagResume].(bool) && flags[flagCopy].(int) <= 0 {
+		flags[flagCopy] = 1
 	}
 	if len(args) > 0 {
 		project = args[0]
@@ -108,7 +111,118 @@ func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project,
 	if len(args) > 1 {
 		task = args[1]
 	}
-	return flags[flagQuiet].(bool), project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), flags[flagCopy].(int), flags[flagResume].(bool), nil
+	return flags[flagQuiet].(bool), project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), flags[flagCopy].(int), nil
+}
+
+func in(a string, b []string) bool {
+	for _, c := range b {
+		if a == c {
+			return true
+		}
+	}
+	return false
+}
+
+func getStartParametersInteractive() (project, task string, timestamp time.Time, tags []string, err error) {
+	order := tt.OrderBy{Field: tt.FieldStart, Order: tt.OrderDsc}
+	var timers tt.Timers
+	err = tt.GetDB().GetTimers(tt.Filter{}, order, &timers)
+	if err != nil {
+		return
+	}
+	var allProjects []string
+	allTasks := make(map[string][]string)
+	for _, t := range timers {
+		if !in(t.Project, allProjects) {
+			allProjects = append(allProjects, t.Project)
+		}
+		if t.Task != "" && !in(t.Task, allTasks[t.Project]) {
+			allTasks[t.Project] = append(allTasks[t.Project], t.Task)
+		}
+	}
+
+	timestampDefault := ""
+	if len(timers) > 0 && timers[0].Stop != nil {
+		latestStopTime := *timers[0].Stop
+		if datesEqual(time.Now(), latestStopTime) {
+			timestampDefault = fmt.Sprintf("%02d:%02d", latestStopTime.Hour(), latestStopTime.Minute())
+		} else {
+			timestampDefault = fmt.Sprintf("%04d-%02d-%02d %02d:%02d", latestStopTime.Year(), latestStopTime.Month(), latestStopTime.Day(), latestStopTime.Hour(), latestStopTime.Minute())
+		}
+	}
+
+	answers := new(struct {
+		Project   string
+		Task      string
+		Timestamp string
+		Tags      string
+	})
+
+	qs := []*survey.Question{
+		{
+			Name: "timestamp",
+			Prompt: &survey.Input{
+				Message: "Enter a start timestamp",
+				Default: timestampDefault,
+			},
+		},
+		{
+			Name: "project",
+			Prompt: &survey.Input{
+				Message: "Enter a project",
+				Default: "",
+				Suggest: func(toComplete string) (suggestions []string) {
+					for _, project := range allProjects {
+						if strings.HasPrefix(project, toComplete) {
+							suggestions = append(suggestions, project)
+						}
+					}
+					return
+				},
+			},
+			Validate: func(ans interface{}) error {
+				if project, ok := ans.(string); !ok {
+					return fmt.Errorf("%w: project must be of type string", tt.ErrInvalidParameter)
+				} else if project == "" {
+					return fmt.Errorf("%w: project cannot be empty", tt.ErrInvalidParameter)
+				}
+				return nil
+			},
+		},
+		{
+			Name: "task",
+			Prompt: &survey.Input{
+				Message: "Enter a task (optional)",
+				Default: "",
+				Suggest: func(toComplete string) (suggestions []string) {
+					for _, task := range allTasks[answers.Project] {
+						if strings.HasPrefix(task, toComplete) {
+							suggestions = append(suggestions, task)
+						}
+					}
+					return
+				},
+			},
+		},
+		{
+			Name: "tags",
+			Prompt: &survey.Input{
+				Message: "Enter tags (optional)",
+				Default: "", // TODO: maybe we can suggest tags that were used for the same project/task combination
+			},
+		},
+	}
+	err = survey.Ask(qs, answers)
+	if err != nil {
+		err = fmt.Errorf("interactive input: %w", err)
+		return
+	}
+	timestamp, err = tt.ParseDate(answers.Timestamp)
+	if err != nil {
+		return
+	}
+	tags = strings.Split(answers.Tags, ",")
+	return answers.Project, answers.Task, timestamp, tags, nil
 }
 
 func printTrackingStartedMsg(t tt.Timer) {
@@ -118,6 +232,6 @@ func printTrackingStartedMsg(t tt.Timer) {
 		fmt.Printf("  task   : %s\n", t.Task)
 	}
 	if len(t.Tags) > 0 {
-		fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ", "))
+		fmt.Printf("  tags   : %s\n", strings.Join(t.Tags, ","))
 	}
 }

@@ -2,7 +2,6 @@ package tt
 
 import (
 	"fmt"
-	"time"
 )
 
 const (
@@ -36,7 +35,7 @@ type DB interface {
 	RemoveTimer(string) error
 
 	SaveVacationDay(VacationDay) error
-	GetVacationDay(time.Time, *VacationDay) error
+	GetVacationDay(VacationFilter, *VacationDay) error
 	GetVacationDays(OrderBy, *[]VacationDay) error
 	RemoveVacationDay(string) error
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -235,8 +234,8 @@ func (db *sqlite) SaveVacationDay(vacationDay VacationDay) error {
 	return db.save(tableVacationDays, vacationDay.ID, vacationDay)
 }
 
-func (db *sqlite) GetVacationDay(day time.Time, vacationDay *VacationDay) error {
-	return db.getOne(tableVacationDays, VacationFilter(day), OrderBy{}, vacationDay)
+func (db *sqlite) GetVacationDay(filter VacationFilter, vacationDay *VacationDay) error {
+	return db.getOne(tableVacationDays, filter, OrderBy{}, vacationDay)
 }
 
 func (db *sqlite) GetVacationDays(orderBy OrderBy, vacationDays *[]VacationDay) error {

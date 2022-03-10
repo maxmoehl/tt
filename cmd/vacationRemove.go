@@ -34,7 +34,7 @@ func init() {
 
 func runVacationRemove(day time.Time) error {
 	var vac tt.VacationDay
-	err := tt.GetDB().GetVacationDay(day, &vac)
+	err := tt.GetDB().GetVacationDay(tt.VacationFilter(day), &vac)
 	if err != nil {
 		return err
 	}

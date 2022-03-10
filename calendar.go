@@ -71,12 +71,8 @@ type Day struct {
 }
 
 func (d Day) String() string {
-	// TODO: this could probably be simplified:
-	//       simply compare planned to tracked time
-	//         if planned == 0 leave empty, print vac, or plus time in green
-	//         if planned > 0 show fulfilment using color coding (tbd)
-	dur := d.Timers.Duration()
-	if d.Vacation == nil && !IsWorkDay(d.Time) && dur == 0 {
+	tracked := d.Timers.Duration()
+	if d.Vacation == nil && !IsWorkDay(d.Time) && tracked == 0 {
 		return fmt.Sprintf("%02d       ", d.Time.Day())
 	} else if d.Vacation == nil && IsWorkDay(d.Time) {
 		// TODO: color code depending on fulfillment
@@ -130,7 +126,7 @@ func PlannedTime(date time.Time) (time.Duration, error) {
 	}
 	workTime := time.Duration(GetConfig().Timeclock.HoursPerDay) * time.Hour
 	var vac VacationDay
-	err := GetDB().GetVacationDay(date, &vac)
+	err := GetDB().GetVacationDay(VacationFilter(date), &vac)
 	if errors.Is(err, ErrNotFound) {
 		return workTime, nil
 	} else if err != nil {
@@ -140,4 +136,66 @@ func PlannedTime(date time.Time) (time.Duration, error) {
 		return workTime / 2, nil
 	}
 	return 0, nil
+}
+
+func BuildCalendar() ([]Year, error) {
+	db := GetDB()
+	var timers Timers
+	err := db.GetTimers(Filter{}, OrderBy{}, &timers)
+	if err != nil {
+		return nil, err
+	}
+	groupedTimers := timers.GroupBy(GroupByDay)
+	var start time.Time
+	var stop time.Time
+	for _, timers := range groupedTimers {
+		for _, timer := range timers {
+			if start.IsZero() || timer.Start.Unix() < start.Unix() {
+				start = timer.Start
+			}
+			if stop.IsZero() || timer.Start.Unix() > stop.Unix() {
+				stop = timer.Start
+			}
+		}
+	}
+	years := make(map[int]Year)
+	for y := start.Year(); y <= stop.Year(); y++ {
+		var months [12]Month
+		for m := 0; !(y == stop.Year() && time.Month(m+1) > stop.Month()) && m < 12; m++ {
+			if y == start.Year() && time.Month(m+1) < start.Month() {
+				continue
+			}
+			var days []Day
+			for d := 0; isValidDate(y, m, d); d++ {
+				key := fmt.Sprintf("%04d-%02d-%02d", y, m+1, d+1)
+				t := time.Date(y, time.Month(m+1), d+1, 0, 0, 0, 0, time.UTC)
+				var vac VacationDay
+				var pVac *VacationDay
+				err = db.GetVacationDay(VacationFilter(t), &vac)
+				if err == nil {
+					pVac = &vac
+				} else if err != nil && !errors.Is(err, ErrNotFound) {
+					return nil, err
+				}
+				days = append(days, Day{
+					Time:     t,
+					Timers:   groupedTimers[key],
+					Vacation: pVac,
+				})
+			}
+			months[m] = Month{
+				Days: days,
+			}
+		}
+		years[y] = Year{
+			Year:   y,
+			Months: months,
+		}
+	}
+	return nil, nil
+}
+
+func isValidDate(year, month, day int) bool {
+	d := time.Date(year, time.Month(month+1), day+1, 0, 0, 0, 0, time.UTC)
+	return d.Year() == year && month+1 == int(d.Month()) && day+1 == d.Day()
 }

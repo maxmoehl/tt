@@ -7,10 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func List(filter Filter) {
-
-}
-
 func Start(project, task string, tags []string, timestamp time.Time, copy int) (Timer, error) {
 	db := GetDB()
 	orderBy := OrderBy{

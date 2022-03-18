@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 var monthNames = []string{
@@ -72,14 +74,26 @@ type Day struct {
 
 func (d Day) String() string {
 	tracked := d.Timers.Duration()
+	planned, err := PlannedTime(d.Time)
+	if err != nil {
+		panic(err.Error())
+	}
+	// TODO: how do we handle edge cases?
+	//       1. working on vacation
+	//       2. working on non-work-days
 	if d.Vacation == nil && !IsWorkDay(d.Time) && tracked == 0 {
 		return fmt.Sprintf("%02d       ", d.Time.Day())
-	} else if d.Vacation == nil && IsWorkDay(d.Time) {
-		// TODO: color code depending on fulfillment
-		return fmt.Sprintf("%02d %s", d.Time.Day(), FormatDuration(d.Timers.Duration(), time.Minute))
-	} else if d.Vacation.Half {
-		// TODO: color code depending on fulfilment and account for half a day vacation
-		return fmt.Sprintf("%02d %s", d.Time.Day(), FormatDuration(d.Timers.Duration(), time.Minute))
+	} else if (d.Vacation == nil || d.Vacation.Half) && IsWorkDay(d.Time) {
+
+		var coloring func(string, ...interface{}) string
+		if planned < tracked {
+			coloring = color.GreenString
+		} else if planned > tracked {
+			coloring = color.RedString
+		} else {
+			coloring = color.BlueString
+		}
+		return fmt.Sprintf("%02d %s", d.Time.Day(), coloring("%s", FormatDurationCustom(tracked, time.Minute)))
 	} else {
 		return fmt.Sprintf("%02d vac.  ", d.Time.Day())
 	}
@@ -141,11 +155,11 @@ func PlannedTime(date time.Time) (time.Duration, error) {
 func BuildCalendar() ([]Year, error) {
 	db := GetDB()
 	var timers Timers
-	err := db.GetTimers(Filter{}, OrderBy{}, &timers)
+	err := db.GetTimers(EmptyFilter, OrderBy{}, &timers)
 	if err != nil {
 		return nil, err
 	}
-	groupedTimers := timers.GroupBy(GroupByDay)
+	groupedTimers := timers.GroupByDay()
 	var start time.Time
 	var stop time.Time
 	for _, timers := range groupedTimers {
@@ -158,7 +172,7 @@ func BuildCalendar() ([]Year, error) {
 			}
 		}
 	}
-	years := make(map[int]Year)
+	var years []Year
 	for y := start.Year(); y <= stop.Year(); y++ {
 		var months [12]Month
 		for m := 0; !(y == stop.Year() && time.Month(m+1) > stop.Month()) && m < 12; m++ {
@@ -187,12 +201,12 @@ func BuildCalendar() ([]Year, error) {
 				Days: days,
 			}
 		}
-		years[y] = Year{
+		years = append(years, Year{
 			Year:   y,
 			Months: months,
-		}
+		})
 	}
-	return nil, nil
+	return years, nil
 }
 
 func isValidDate(year, month, day int) bool {

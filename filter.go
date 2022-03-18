@@ -22,14 +22,22 @@ const (
 	DateFormat = "2006-01-02"
 )
 
-// Filter contains all available filters. If a value is empty (i.e. "" or nil)
-// it is assumed that the Filter is not set and all values are included.
-type Filter struct {
+var EmptyFilter *filter
+
+type Filter interface {
+	DatabaseFilter
+	Match(Timer) bool
+	Timers(Timers) Timers
+}
+
+// filter contains all available filters. If a value is empty (i.e. "" or nil)
+// it is assumed that the filter is not set and all values are included.
+type filter struct {
 	// project contains all project names that should be included. Accepts
-	// multiple values. Project Filter can be set with the keyword 'project'.
+	// multiple values. Project filter can be set with the keyword 'project'.
 	project []string
 	// task contains all task names that should be included. Accepts
-	// multiple values. Task Filter can be set with the keyword 'task'.
+	// multiple values. Task filter can be set with the keyword 'task'.
 	task []string
 	// since stores the date from which on the data should be included. Since
 	// is inclusive and only accepts a single value in the following form:
@@ -39,16 +47,19 @@ type Filter struct {
 	// until stores the last date that should be included. Until is inclusive
 	// and only accepts a single value in the following form:
 	//	 yyyy-MM-dd
-	// Until Filter can be set with the keyword 'until'.
+	// Until filter can be set with the keyword 'until'.
 	until time.Time
 	// tags contains all tags that should be included. They are parsed as a
 	// comma separated list and can be set with the keyword 'tags'.
 	tags []string
 }
 
-// Match checks if a given Timer matches this Filter. An empty filter matches
+// Match checks if a given Timer matches this filter. An empty filter matches
 // everything
-func (f Filter) Match(t Timer) bool {
+func (f *filter) Match(t Timer) bool {
+	if f == nil {
+		return true
+	}
 	if f.project != nil && !stringSliceContains(f.project, t.Project) {
 		return false
 	}
@@ -67,7 +78,10 @@ func (f Filter) Match(t Timer) bool {
 	return true
 }
 
-func (f Filter) Timers(timers Timers) (filtered Timers) {
+func (f *filter) Timers(timers Timers) (filtered Timers) {
+	if f == nil {
+		return timers
+	}
 	for _, t := range timers {
 		if f.Match(t) {
 			filtered = append(filtered, t)
@@ -79,25 +93,28 @@ func (f Filter) Timers(timers Timers) (filtered Timers) {
 // SQL returns the WHERE clause that can be used to match timers using this
 // filter. A known limitation is that filtering for tags is not supported
 // because of the way the tags are stored in the database.
-func (f Filter) SQL() string {
-	var filters []string
-	projects := convertFilterToSql("project", f.project, sqlOperatorEquals)
-	if projects != "" {
-		filters = append(filters, projects)
+func (f *filter) SQL() string {
+	if f == nil {
+		return ""
 	}
-	tasks := convertFilterToSql("task", f.task, sqlOperatorEquals)
-	if tasks != "" {
-		filters = append(filters, tasks)
+	var filters []string
+	if len(f.project) > 0 {
+		// f.project = ["a", "b", "c"] => "json_extract(`json`, '$.project') IN ('a', 'b', 'c')"
+		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.project') IN ('%s')", strings.Join(f.project, "', '")))
+	}
+	if len(f.task) > 0 {
+		// f.task = ["a", "b", "c"] => "json_extract(`json`, '$.task') IN ('a', 'b', 'c')"
+		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.task') IN ('%s')", strings.Join(f.task, "', '")))
+	}
+	if len(f.tags) > 0 {
+		// f.tags = ["a", "b", "c"] => "`uuid` IN (SELECT `uuid` FROM `timers`, json_each(json_extract(timers.json, '$.tags')) WHERE value IN ('a', 'b', 'c'))"
+		filters = append(filters, fmt.Sprintf("`uuid` IN (SELECT `uuid` FROM `timers`, json_each(json_extract(timers.json, '$.tags')) WHERE value IN ('%s'))", strings.Join(f.tags, "', '")))
 	}
 	if !f.since.IsZero() {
 		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') >= '%s'", f.since.Format(DateFormat)))
 	}
 	if !f.until.IsZero() {
 		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') < '%s'", f.until.Format(DateFormat)))
-	}
-	tags := convertFilterToSql("tags", f.tags, sqlOperatorLike)
-	if tags != "" {
-		filters = append(filters, tags)
 	}
 	// if there are no filters return TRUE to match all values
 	if len(filters) == 0 {
@@ -106,12 +123,12 @@ func (f Filter) SQL() string {
 	return "WHERE " + strings.Join(filters, " AND ")
 }
 
-// ParseFilterString takes a string and creates a Filter from it. The Filter
+// ParseFilterString takes a string and creates a filter from it. The filter
 // string has to be in the following format:
 //
 //   filterName=values;filterName=values;...
 //
-// each filterName consists of a string, values contains the Filter value. Some
+// each filterName consists of a string, values contains the filter value. Some
 // filters only accept a single value, others accept multiple values separated
 // by commas.
 //
@@ -127,23 +144,23 @@ func (f Filter) SQL() string {
 //   tags   : accepts multiple string values
 //
 // since and until are inclusive, both dates will be included in filtered data.
-// TODO: increase usability by allowing more relaxed values (e.g. 'today', 'yesterday' for since/until)
 func ParseFilterString(filterString string) (Filter, error) {
-	var f Filter
+	var f *filter
 	if len(filterString) == 0 {
 		return f, nil
 	}
+	f = new(filter)
 	for _, fSlice := range strings.Split(filterString, filtersSeparator) {
 		key, values, err := parseFilter(fSlice)
 		if err != nil {
-			return f, err
+			return nil, err
 		}
-		err = parseValuesInto(key, values, &f)
+		err = parseValuesInto(key, values, f)
 		if err != nil {
-			return f, err
+			return nil, err
 		}
 	}
-	// To make until inclusive we have to add 24h to it since Filter.Match
+	// To make until inclusive we have to add 24h to it since filter.Match
 	// checks if the end of a timer is before until
 	// TODO: this might not be necessary anymore
 	if !f.until.IsZero() {
@@ -152,9 +169,9 @@ func ParseFilterString(filterString string) (Filter, error) {
 	return f, nil
 }
 
-// NewFilter allows to create a Filter that is not parsed from a Filter string.
+// NewFilter allows to create a filter that is not parsed from a filter string.
 func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
-	return Filter{
+	return &filter{
 		project: projects,
 		task:    tasks,
 		since:   time.Date(since.Year(), since.Month(), since.Day(), 0, 0, 0, 0, time.UTC),
@@ -171,52 +188,47 @@ func parseFilter(in string) (key, values string, err error) {
 	return filterSplit[0], filterSplit[1], nil
 }
 
-func parseValuesInto(key, values string, f *Filter) (err error) {
+func parseValuesInto(key, values string, f *filter) (err error) {
 	switch key {
 	case filterProject:
 		if f.project != nil {
-			err = fmt.Errorf("%w: redeclared filter project", ErrInvalidData)
-			return
+			err = fmt.Errorf("redeclared filter project")
+			break
 		}
 		f.project = strings.Split(values, valuesSeparator)
 	case filterTask:
 		if f.task != nil {
-			err = fmt.Errorf("%w: redeclared filter task", ErrInvalidData)
-			return
+			err = fmt.Errorf("redeclared filter task")
+			break
 		}
 		f.task = strings.Split(values, valuesSeparator)
 	case filterSince:
 		if !f.since.IsZero() {
-			err = fmt.Errorf("%w: redeclared filter since", ErrInvalidData)
-			return
+			err = fmt.Errorf("redeclared filter since")
+			break
 		}
-		f.since, err = time.Parse(DateFormat, values)
-		if err != nil {
-			err = fmt.Errorf("%w: %s", ErrInvalidData, err.Error())
-			return
-		}
+		f.since, err = ParseDate(values)
 	case filterUntil:
 		if !f.until.IsZero() {
-			err = fmt.Errorf("%w: redeclared filter until", ErrInvalidData)
-			return
+			err = fmt.Errorf("redeclared filter until")
+			break
 		}
-		f.until, err = time.Parse(DateFormat, values)
-		if err != nil {
-			err = fmt.Errorf("%w: %s", ErrInvalidData, err.Error())
-			return
-		}
+		f.until, err = ParseDate(values)
 	case filterTags:
 		if f.tags != nil {
-			err = fmt.Errorf("%w: redeclared filter tags", ErrInvalidData)
-			return
+			err = fmt.Errorf("redeclared filter tags")
+			break
 		}
 		f.tags = strings.Split(values, valuesSeparator)
+	}
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidData, err.Error())
 	}
 	return
 }
 
-// stringContainsAny checks if any of the valid values is inside the searchable
-// list.
+// stringSliceContainsAny checks if any of the valid values is inside the
+// searchable list.
 func stringSliceContainsAny(shouldContain []string, toSearch []string) bool {
 	for _, c := range shouldContain {
 		for _, t := range toSearch {

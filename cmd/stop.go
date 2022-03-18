@@ -29,11 +29,11 @@ You can also supply a full RFC3339 date-time string.
 
 Otherwise an appropriate error will be printed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, timestamp, err := getStopParameters(cmd, args)
+		timestamp, err := getStopParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("stop: %w", err)
 		}
-		err = runStop(quiet, timestamp)
+		err = runStop(timestamp)
 		if err != nil {
 			return err
 		}
@@ -46,23 +46,21 @@ func init() {
 	stopCmd.Flags().StringP(flagTimestamp, string(flagTimestamp[0]), "", "manually set the stop time for a timer")
 }
 
-func runStop(quiet bool, timestamp time.Time) error {
+func runStop(timestamp time.Time) error {
 	timer, err := tt.Stop(timestamp)
 	if err != nil {
 		return err
 	}
-	if !quiet {
-		printTrackingStoppedMsg(timer)
-	}
+	printTrackingStoppedMsg(timer)
 	return nil
 }
 
-func getStopParameters(cmd *cobra.Command, _ []string) (quiet bool, timestamp time.Time, err error) {
-	flags, err := flags(cmd, flagQuiet, flagTimestamp)
+func getStopParameters(cmd *cobra.Command, _ []string) (timestamp time.Time, err error) {
+	flags, err := flags(cmd, flagTimestamp)
 	if err != nil {
 		return
 	}
-	return flags[flagQuiet].(bool), flags[flagTimestamp].(time.Time), nil
+	return flags[flagTimestamp].(time.Time), nil
 }
 
 func printTrackingStoppedMsg(t tt.Timer) {
@@ -75,5 +73,5 @@ func printTrackingStoppedMsg(t tt.Timer) {
 	if len(t.Tags) > 0 {
 		fmt.Printf("  tags    : %s\n", strings.Join(t.Tags, ","))
 	}
-	fmt.Printf("  duration: %s\n", tt.FormatDuration(t.Duration(), tt.GetConfig().GetPrecision()))
+	fmt.Printf("  duration: %s\n", tt.FormatDuration(t.Duration()))
 }

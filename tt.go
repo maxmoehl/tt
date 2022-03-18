@@ -7,6 +7,15 @@ import (
 	"github.com/google/uuid"
 )
 
+func List(filter Filter, orderBy OrderBy) (Timers, error) {
+	var timers Timers
+	err := GetDB().GetTimers(filter, orderBy, &timers)
+	if err != nil {
+		return nil, fmt.Errorf("list: %w", err)
+	}
+	return timers, nil
+}
+
 func Start(project, task string, tags []string, timestamp time.Time, copy int) (Timer, error) {
 	db := GetDB()
 	orderBy := OrderBy{
@@ -16,7 +25,7 @@ func Start(project, task string, tags []string, timestamp time.Time, copy int) (
 	var baseTimer Timer
 	if copy > 0 {
 		var timers Timers
-		err := db.GetTimers(Filter{}, orderBy, &timers)
+		err := db.GetTimers(EmptyFilter, orderBy, &timers)
 		if err != nil {
 			return Timer{}, fmt.Errorf("start: %w", err)
 		}
@@ -63,7 +72,7 @@ func Stop(timestamp time.Time) (Timer, error) {
 		Order: OrderDsc,
 	}
 	var timer Timer
-	err := db.GetTimer(Filter{}, orderBy, &timer)
+	err := db.GetTimer(EmptyFilter, orderBy, &timer)
 	if err != nil {
 		return Timer{}, fmt.Errorf("stop: %w", err)
 	}

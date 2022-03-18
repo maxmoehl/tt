@@ -10,10 +10,6 @@ const (
 	FieldTask    Field = "task"
 	FieldDay     Field = "day"
 
-	GroupByProject GroupByOption = "project"
-	GroupByTask    GroupByOption = "task"
-	GroupByDay     GroupByOption = "day"
-
 	OrderAsc Order = "ASC"
 	OrderDsc Order = "DESC"
 )
@@ -41,7 +37,6 @@ type DB interface {
 }
 
 type Field string
-type GroupByOption string
 type Order string
 
 type OrderBy struct {

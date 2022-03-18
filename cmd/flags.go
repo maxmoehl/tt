@@ -27,6 +27,8 @@ const (
 	flagHalf = "half"
 	// flagInteractive return type bool
 	flagInteractive = "interactive"
+	// flagNoColor return type bool
+	flagNoColor = "no-color"
 	// flagPort return type int
 	flagPort = "port"
 	// flagQuiet return type bool
@@ -50,6 +52,7 @@ var flagGetter = map[string]func(cmd *cobra.Command) (interface{}, error){
 	flagGroupBy:     getStringFlag(flagGroupBy),
 	flagHalf:        getBoolFlag(flagHalf),
 	flagInteractive: getBoolFlag(flagInteractive),
+	flagNoColor:     getBoolFlag(flagNoColor),
 	flagPort:        getIntFlag(flagPort),
 	flagQuiet:       getBoolFlag(flagQuiet),
 	flagRemove:      getBoolFlag(flagRemove),
@@ -63,7 +66,7 @@ func short(flag string) string {
 	switch flag {
 	case flagDay, flagFilter, flagGroupBy, flagQuiet, flagShort, flagTimestamp, flagInteractive, flagCopy, flagResume:
 		return string([]rune(flag)[0])
-	case flagRemove:
+	case flagRemove, flagNoColor:
 		return ""
 	default:
 		panic(fmt.Sprintf("unknown flag: %s", flag))
@@ -128,7 +131,7 @@ func getTimestampFlag(cmd *cobra.Command) (interface{}, error) {
 		return nil, err
 	}
 	if rawTimestamp != "" {
-		return tt.ParseDate(rawTimestamp)
+		return tt.ParseTime(rawTimestamp)
 	} else {
 		return time.Now(), nil
 	}

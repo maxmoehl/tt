@@ -52,11 +52,11 @@ The cli will check if the given start time is valid, e.g. if the last timer
 that ended, ended before the given start.`,
 	Example: "tt start programming tt --tags private",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, project, task, tags, timestamp, copyFrom, err := getStartParameters(cmd, args)
+		project, task, tags, timestamp, copyFrom, err := getStartParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
-		err = runStart(quiet, project, task, tags, timestamp, copyFrom)
+		err = runStart(project, task, tags, timestamp, copyFrom)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func init() {
 	//       how does this relate to the copy option?
 }
 
-func runStart(quiet bool, project, task string, tags []string, timestamp time.Time, copyFrom int) error {
+func runStart(project, task string, tags []string, timestamp time.Time, copyFrom int) error {
 	// if we are copying, and we only have a project, the order is reversed
 	// so the project becomes the task.
 	if copyFrom > 0 && task == "" {
@@ -87,15 +87,17 @@ func runStart(quiet bool, project, task string, tags []string, timestamp time.Ti
 	if err != nil {
 		return err
 	}
-	if !quiet {
-		printTrackingStartedMsg(timer)
-	}
+	printTrackingStartedMsg(timer)
 	return nil
 }
 
-func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project, task string, tags []string, timestamp time.Time, copy int, err error) {
+func getStartParameters(cmd *cobra.Command, args []string) (project, task string, tags []string, timestamp time.Time, copy int, err error) {
 	flags, err := flags(cmd, flagQuiet, flagTags, flagTimestamp, flagCopy, flagResume, flagInteractive)
 	if err != nil {
+		return
+	}
+	if flags[flagInteractive].(bool) && flags[flagQuiet].(bool) {
+		err = fmt.Errorf("interactive and quiet cannot be set together")
 		return
 	}
 	if flags[flagInteractive].(bool) {
@@ -111,7 +113,7 @@ func getStartParameters(cmd *cobra.Command, args []string) (quiet bool, project,
 	if len(args) > 1 {
 		task = args[1]
 	}
-	return flags[flagQuiet].(bool), project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), flags[flagCopy].(int), nil
+	return project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), flags[flagCopy].(int), nil
 }
 
 func in(a string, b []string) bool {
@@ -126,7 +128,7 @@ func in(a string, b []string) bool {
 func getStartParametersInteractive() (project, task string, timestamp time.Time, tags []string, err error) {
 	order := tt.OrderBy{Field: tt.FieldStart, Order: tt.OrderDsc}
 	var timers tt.Timers
-	err = tt.GetDB().GetTimers(tt.Filter{}, order, &timers)
+	err = tt.GetDB().GetTimers(tt.EmptyFilter, order, &timers)
 	if err != nil {
 		return
 	}
@@ -217,7 +219,7 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 		err = fmt.Errorf("interactive input: %w", err)
 		return
 	}
-	timestamp, err = tt.ParseDate(answers.Timestamp)
+	timestamp, err = tt.ParseTime(answers.Timestamp)
 	if err != nil {
 		return
 	}

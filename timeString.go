@@ -7,9 +7,11 @@ import (
 	"time"
 )
 
+const TimeFormat = "2006-01-02 15:04"
+
 var datePattern = regexp.MustCompile(`((\d{4})[-/.](\d{1,2})[-/.](\d{1,2}))?([T ])?(\d{1,2}):(\d{1,2}):?(\d{1,2})?`)
 
-// ParseDate will take in a string that contains a time in some format and try
+// ParseTime will take in a string that contains a time in some format and try
 // to guess the missing parts. Currently, the following cases are supported:
 // - 15:04
 // - 15:04:05
@@ -21,7 +23,7 @@ var datePattern = regexp.MustCompile(`((\d{4})[-/.](\d{1,2})[-/.](\d{1,2}))?([T 
 //
 // more general information will be taken from time.Now() (e.g. day or year) and
 // more specific information (e.g. seconds) will be set to zero.
-func ParseDate(in string) (time.Time, error) {
+func ParseTime(in string) (time.Time, error) {
 	// if we can parse as RFC3339 we just return it
 	t, err := time.Parse(time.RFC3339, in)
 	if err == nil {
@@ -89,8 +91,25 @@ func ParseDate(in string) (time.Time, error) {
 	return time.Date(year, time.Month(month), day, hour, min, sec, 0, time.Local), nil
 }
 
-// FormatDuration formats a duration in the given precision.
-func FormatDuration(d time.Duration, precision time.Duration) string {
+func ParseDate(in string) (time.Time, error) {
+	now := time.Now()
+	switch in {
+	case "today":
+		return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local), nil
+	case "yesterday":
+		return time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, time.Local), nil
+	default:
+		return time.Parse(DateFormat, in)
+	}
+}
+
+// FormatDuration formats a duration in the given precision specified by the
+// config.
+func FormatDuration(d time.Duration) string {
+	return FormatDurationCustom(d, GetConfig().GetPrecision())
+}
+
+func FormatDurationCustom(d time.Duration, precision time.Duration) string {
 	h := d / time.Hour
 	m := (d - (h * time.Hour)) / time.Minute
 	s := (d - (h * time.Hour) - (m * time.Minute)) / time.Second

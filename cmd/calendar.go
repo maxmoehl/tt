@@ -12,11 +12,7 @@ var calendarCmd = &cobra.Command{
 	Aliases: []string{"cal"},
 	Short:   "Show all data in a nice calendar format",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, err := getCalendarParameters(cmd, args)
-		if err != nil {
-			return fmt.Errorf("calendar: %w", err)
-		}
-		err = runCalendar(quiet)
+		err := runCalendar()
 		if err != nil {
 			return fmt.Errorf("calendar: %w", err)
 		}
@@ -31,10 +27,7 @@ func init() {
 	//       where planned time == 0
 }
 
-func runCalendar(quiet bool) error {
-	if quiet {
-		return nil
-	}
+func runCalendar() error {
 	years, err := tt.BuildCalendar()
 	if err != nil {
 		return err
@@ -43,12 +36,4 @@ func runCalendar(quiet bool) error {
 		fmt.Printf(year.String())
 	}
 	return nil
-}
-
-func getCalendarParameters(cmd *cobra.Command, _ []string) (quiet bool, err error) {
-	flags, err := flags(cmd, flagQuiet)
-	if err != nil {
-		return
-	}
-	return flags[flagQuiet].(bool), nil
 }

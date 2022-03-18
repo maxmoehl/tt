@@ -41,16 +41,16 @@ func TestParseDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, err := ParseDate(tt.arg); (err != nil) != tt.wantErr {
-				t.Errorf("ParseDate() error = %v, wantErr %v", err, tt.wantErr)
+			if got, err := ParseTime(tt.arg); (err != nil) != tt.wantErr {
+				t.Errorf("ParseTime() error = %v, wantErr %v", err, tt.wantErr)
 			} else if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseDate() = %v, want %v", got, tt.want)
+				t.Errorf("ParseTime() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestFormatDuration(t *testing.T) {
+func TestFormatDurationCustom(t *testing.T) {
 	type args struct {
 		d         time.Duration
 		precision time.Duration
@@ -95,8 +95,8 @@ func TestFormatDuration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := FormatDuration(tt.args.d, tt.args.precision); got != tt.want {
-				t.Errorf("FormatDuration() = %v, want %v", got, tt.want)
+			if got := FormatDurationCustom(tt.args.d, tt.args.precision); got != tt.want {
+				t.Errorf("FormatDurationCustom() = %v, want %v", got, tt.want)
 			}
 		})
 	}

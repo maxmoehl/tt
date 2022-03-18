@@ -20,11 +20,11 @@ This command prints planned vs. worked time.
 
 See subcommands for more details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, day, filter, err := getTimeclockParameters(cmd, args)
+		day, filter, err := getTimeclockParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("timeclock: %w", err)
 		}
-		err = runTimeclock(quiet, day, filter)
+		err = runTimeclock(day, filter)
 		if err != nil {
 			return fmt.Errorf("timeclock: %w", err)
 		}
@@ -38,10 +38,7 @@ func init() {
 	timeclockCmd.Flags().BoolP(flagDay, string(flagDay[0]), false, "show time per day")
 }
 
-func runTimeclock(quiet, day bool, filter tt.Filter) error {
-	if quiet {
-		return nil
-	}
+func runTimeclock(day bool, filter tt.Filter) error {
 	orderBy := tt.OrderBy{
 		Field: tt.FieldStart,
 		Order: tt.OrderAsc,
@@ -61,16 +58,16 @@ func runTimeclock(quiet, day bool, filter tt.Filter) error {
 	return overallStats(timers)
 }
 
-func getTimeclockParameters(cmd *cobra.Command, _ []string) (quiet, day bool, filter tt.Filter, err error) {
-	flags, err := flags(cmd, flagQuiet, flagDay, flagFilter)
+func getTimeclockParameters(cmd *cobra.Command, _ []string) (day bool, filter tt.Filter, err error) {
+	flags, err := flags(cmd, flagDay, flagFilter)
 	if err != nil {
 		return
 	}
-	return flags[flagQuiet].(bool), flags[flagDay].(bool), flags[flagFilter].(tt.Filter), nil
+	return flags[flagDay].(bool), flags[flagFilter].(tt.Filter), nil
 }
 
 func firstAndLast(timers tt.Timers) (first, last time.Time, err error) {
-	groupedTimers := timers.GroupBy(tt.GroupByDay)
+	groupedTimers := timers.GroupByDay()
 	var days []string
 	for day := range groupedTimers {
 		days = append(days, day)
@@ -93,7 +90,6 @@ func statsByDay(timers tt.Timers) error {
 		return err
 	}
 	to = to.AddDate(0, 0, 1)
-	precision := tt.GetConfig().GetPrecision()
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
 		dayTimers := tt.NewFilter(nil, nil, nil, from, from).Timers(timers)
 		worked := dayTimers.Duration()
@@ -104,7 +100,7 @@ func statsByDay(timers tt.Timers) error {
 		if worked == 0 && planned == 0 {
 			continue
 		}
-		fmt.Printf("%s: %s / %s\n", dayString(from), tt.FormatDuration(worked, precision), tt.FormatDuration(planned, precision))
+		fmt.Printf("%s: %s / %s\n", dayString(from), tt.FormatDuration(worked), tt.FormatDuration(planned))
 	}
 	return nil
 }
@@ -119,11 +115,9 @@ func overallStats(timers tt.Timers) error {
 	if err != nil {
 		return err
 	}
-	precision := tt.GetConfig().GetPrecision()
-	f := tt.FormatDuration
-	fmt.Printf("worked    : %s\n", f(worked, precision))
-	fmt.Printf("planned   : %s\n", f(planned, precision))
-	fmt.Printf("difference: %s\n", f(worked-planned, precision))
+	fmt.Printf("worked    : %s\n", tt.FormatDuration(worked))
+	fmt.Printf("planned   : %s\n", tt.FormatDuration(planned))
+	fmt.Printf("difference: %s\n", tt.FormatDuration(worked-planned))
 	fmt.Printf("percentage: %.2f%%\n", float64(worked)/float64(planned)*100)
 	return nil
 }

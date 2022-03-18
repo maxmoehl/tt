@@ -15,6 +15,12 @@ import (
 //       - limit amount of printed timers
 //       - specify order of timers
 
+const (
+	groupByProject = "project"
+	groupByTask    = "task"
+	groupByDay     = "day"
+)
+
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
@@ -46,11 +52,11 @@ Available values are:
   tasks  : Show time by task, automatically sets project
   days   : Show report for each day`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, filter, groupBy, short, err := getListParameters(cmd, args)
+		filter, groupBy, short, err := getListParameters(cmd, args)
 		if err != nil {
-			return fmt.Errorf("list: %w", err)
+			return err
 		}
-		err = runList(quiet, filter, groupBy, short)
+		err = runList(filter, groupBy, short)
 		if err != nil {
 			return fmt.Errorf("list: %w", err)
 		}
@@ -62,59 +68,61 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringP(flagFilter, string(flagFilter[0]), "", "filter results before printing")
 	listCmd.Flags().StringP(flagGroupBy, string(flagGroupBy[0]), "", "group results before printing")
-	listCmd.Flags().BoolP(flagShort, string(flagShort[0]), false, "if the results are grouped, omit individual timers")
+	listCmd.Flags().BoolP(flagShort, string(flagShort[0]), false, "shorten the output")
 }
 
-func runList(quiet bool, filter tt.Filter, groupBy string, short bool) error {
-	if quiet {
-		return nil
-	}
+func runList(filter tt.Filter, groupBy string, short bool) error {
 	orderBy := tt.OrderBy{
 		Field: tt.FieldStart,
 		Order: tt.OrderAsc,
 	}
-	var timers tt.Timers
-	err := tt.GetDB().GetTimers(filter, orderBy, &timers)
+
+	timers, err := tt.List(filter, orderBy)
 	if err != nil {
 		return err
 	}
-	g := tt.GroupByOption(groupBy)
-	if g == "" {
-		printTimers(timers)
 
-	} else if g == tt.GroupByDay || g == tt.GroupByProject {
-		printTimersGrouped(timers.GroupBy(g), short)
-
-	} else if g == tt.GroupByTask {
-		grouped := make(map[string]map[string]tt.Timers)
-		for k, v := range timers.GroupBy(tt.GroupByProject) {
-			grouped[k] = v.GroupBy(tt.GroupByTask)
-		}
-		printTimersDoubleGrouped(grouped, short)
-
-	} else {
-		return fmt.Errorf("unknown group by option: %s", groupBy)
+	switch groupBy {
+	case "":
+		printTimers(timers, short)
+	case groupByDay:
+		printTimersGrouped(timers.GroupByDay(), short)
+	case groupByProject:
+		printTimersGrouped(timers.GroupByProject(), short)
+	case groupByTask:
+		printTimersByTask(timers.GroupByTask(), short)
+	default:
+		return fmt.Errorf("list: unknown group by option: %s", groupBy)
 	}
-	fmt.Printf("Overall total duration tracked: %s\n", tt.FormatDuration(timers.Duration(), tt.GetConfig().GetPrecision()))
+
+	fmt.Printf("Overall total duration tracked: %s\n", tt.FormatDuration(timers.Duration()))
 	return nil
 }
 
-func getListParameters(cmd *cobra.Command, _ []string) (quiet bool, filter tt.Filter, groupBy string, short bool, err error) {
-	flags, err := flags(cmd, flagQuiet, flagFilter, flagGroupBy, flagShort)
+func getListParameters(cmd *cobra.Command, _ []string) (filter tt.Filter, groupBy string, short bool, err error) {
+	flags, err := flags(cmd, flagFilter, flagGroupBy, flagShort)
 	if err != nil {
 		return
 	}
-	return flags[flagQuiet].(bool), flags[flagFilter].(tt.Filter), flags[flagGroupBy].(string), flags[flagShort].(bool), nil
+	return flags[flagFilter].(tt.Filter), flags[flagGroupBy].(string), flags[flagShort].(bool), nil
 }
 
-func printTimers(timers tt.Timers) {
+func printTimers(timers tt.Timers, short bool) {
 	var totalDuration time.Duration = 0
 	for _, t := range timers {
-		fmt.Println(t.String())
-		fmt.Println("--------")
+		if short {
+			task := "no-task"
+			if t.Task != "" {
+				task = t.Task
+			}
+			fmt.Printf("%s (%s) %s / %s\n", t.Start.Format(tt.TimeFormat), tt.FormatDuration(t.Duration()), t.Project, task)
+		} else {
+			fmt.Println(t.String())
+			fmt.Println("--------")
+		}
 		totalDuration += t.Duration()
 	}
-	fmt.Printf("Total duration tracked: %s\n\n", tt.FormatDuration(totalDuration, tt.GetConfig().GetPrecision()))
+	fmt.Printf("Total duration tracked: %s\n\n", tt.FormatDuration(totalDuration))
 }
 
 func printTimersGrouped(groupedTimers map[string]tt.Timers, short bool) {
@@ -125,16 +133,16 @@ func printTimersGrouped(groupedTimers map[string]tt.Timers, short bool) {
 	sort.Strings(keys)
 	for _, key := range keys {
 		if short {
-			fmt.Printf("%s: %s\n", key, tt.FormatDuration(groupedTimers[key].Duration(), tt.GetConfig().GetPrecision()))
+			fmt.Printf("%s: %s\n", key, tt.FormatDuration(groupedTimers[key].Duration()))
 		} else {
 			fmt.Printf("### %s ###\n", key)
-			printTimers(groupedTimers[key])
+			printTimers(groupedTimers[key], false)
 			fmt.Println()
 		}
 	}
 }
 
-func printTimersDoubleGrouped(groupedTimers map[string]map[string]tt.Timers, short bool) {
+func printTimersByTask(groupedTimers map[string]map[string]tt.Timers, short bool) {
 	var keys []string
 	for key := range groupedTimers {
 		keys = append(keys, key)

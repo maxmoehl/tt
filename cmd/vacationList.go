@@ -13,11 +13,7 @@ var vacationListCmd = &cobra.Command{
 	Short:   "List all vacation days",
 	Long:    `List all vacation days.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, err := getVacationListParameters(cmd, args)
-		if err != nil {
-			return fmt.Errorf("vacation list: %w", err)
-		}
-		err = runVacationList(quiet)
+		err := runVacationList()
 		if err != nil {
 			return fmt.Errorf("vacation list: %w", err)
 		}
@@ -29,10 +25,7 @@ func init() {
 	vacationCmd.AddCommand(vacationListCmd)
 }
 
-func runVacationList(quiet bool) error {
-	if quiet {
-		return nil
-	}
+func runVacationList() error {
 	var vacationDays []tt.VacationDay
 	order := tt.OrderBy{
 		Field: tt.FieldDay,
@@ -54,12 +47,4 @@ func runVacationList(quiet bool) error {
 	}
 	fmt.Printf("Total Vacation Days: %.1f\n", float64(vacationCount)/2)
 	return nil
-}
-
-func getVacationListParameters(cmd *cobra.Command, _ []string) (quiet bool, err error) {
-	flags, err := flags(cmd, flagQuiet)
-	if err != nil {
-		return
-	}
-	return flags[flagQuiet].(bool), nil
 }

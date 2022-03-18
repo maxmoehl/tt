@@ -19,11 +19,11 @@ type DatabaseFilter interface {
 	SQL() string
 }
 
-// EmptyFilter is a minimal filter to fulfill the DatabaseFilter interface
-// without actually filtering anything.
-type EmptyFilter struct{}
+type emptyDbFilter struct{}
 
-func (_ EmptyFilter) SQL() string { return "TRUE" }
+func (_ emptyDbFilter) SQL() string { return "" }
+
+var EmptyDbFilter emptyDbFilter
 
 type sqlite struct {
 	db *sql.DB
@@ -103,6 +103,8 @@ func (db *sqlite) getOne(table string, filter DatabaseFilter, orderBy OrderBy, t
 	err := row.Scan(&content)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("get-one: %w", ErrNotFound)
+	} else if err != nil {
+		return fmt.Errorf("%w: %s", ErrInternal, err.Error())
 	}
 
 	err = json.Unmarshal([]byte(content), target)
@@ -120,6 +122,8 @@ func (db *sqlite) getOneById(table string, id string, target interface{}) error 
 	err := row.Scan(&content)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("get-one-by-id: %w", ErrNotFound)
+	} else if err != nil {
+		return fmt.Errorf("%w: %s", ErrInternal, err.Error())
 	}
 
 	err = json.Unmarshal([]byte(content), target)
@@ -130,7 +134,9 @@ func (db *sqlite) getOneById(table string, id string, target interface{}) error 
 }
 
 func (db *sqlite) getMultiple(table string, filter DatabaseFilter, orderBy OrderBy, target interface{}) error {
-	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, filter.SQL(), orderBy.SQL())
+	fs := filter.SQL()
+	os := orderBy.SQL()
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, fs, os)
 
 	rows, err := db.db.Query(selectStmt)
 	if err != nil {
@@ -165,7 +171,6 @@ func (db *sqlite) update(table string, id string, value interface{}) error {
 		return fmt.Errorf("update: %w: %s", ErrInvalidData, err.Error())
 	}
 
-	// TODO: not found error?
 	res, err := db.db.Exec(updateStmt, string(b), id)
 	if err != nil {
 		return fmt.Errorf("update: %w: %s", ErrInternal, err.Error())
@@ -183,7 +188,6 @@ func (db *sqlite) update(table string, id string, value interface{}) error {
 func (db *sqlite) remove(table string, id string) error {
 	deleteStmt := fmt.Sprintf("DELETE FROM %s WHERE `uuid` = ?;", table)
 
-	// TODO: not found error?
 	res, err := db.db.Exec(deleteStmt, id)
 	if err != nil {
 		return fmt.Errorf("remove: %w: %s", ErrInternal, err.Error())
@@ -239,7 +243,7 @@ func (db *sqlite) GetVacationDay(filter VacationFilter, vacationDay *VacationDay
 }
 
 func (db *sqlite) GetVacationDays(orderBy OrderBy, vacationDays *[]VacationDay) error {
-	return db.getMultiple(tableVacationDays, EmptyFilter{}, orderBy, vacationDays)
+	return db.getMultiple(tableVacationDays, EmptyDbFilter, orderBy, vacationDays)
 }
 
 func (db *sqlite) RemoveVacationDay(id string) error {

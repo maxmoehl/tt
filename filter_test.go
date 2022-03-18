@@ -15,13 +15,13 @@ func TestParseFilterString(t *testing.T) {
 	tests := []struct {
 		name         string
 		filterString string
-		want         Filter
+		want         filter
 		wantErr      bool
 	}{
 		{
 			"test filter projects",
 			"project=a,b,c",
-			Filter{
+			filter{
 				project: []string{"a", "b", "c"},
 				task:    nil,
 				since:   time.Time{},
@@ -33,7 +33,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter tasks",
 			"task=x,y,z",
-			Filter{
+			filter{
 				project: nil,
 				task:    []string{"x", "y", "z"},
 				since:   time.Time{},
@@ -45,7 +45,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter tags",
 			"tags=l,m,n",
-			Filter{
+			filter{
 				project: nil,
 				task:    nil,
 				since:   time.Time{},
@@ -57,7 +57,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter since",
 			"since=2021-05-21",
-			Filter{
+			filter{
 				project: nil,
 				task:    nil,
 				since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.UTC),
@@ -69,7 +69,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter until",
 			"until=2021-06-21",
-			Filter{
+			filter{
 				project: nil,
 				task:    nil,
 				since:   time.Time{},
@@ -81,7 +81,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test multiple filters",
 			"project=a,b;task=x",
-			Filter{
+			filter{
 				project: []string{"a", "b"},
 				task:    []string{"x"},
 				since:   time.Time{},

@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/google/uuid"
 	"github.com/maxmoehl/tt"
 	"github.com/spf13/cobra"
@@ -13,11 +15,11 @@ var editCmd = &cobra.Command{
 	Aliases: []string{"e"},
 	Short:   "Edit existing timers, even after they are closed",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, remove, id, err := getEditParameters(cmd, args)
+		remove, id, err := getEditParameters(cmd, args)
 		if err != nil {
 			return fmt.Errorf("edit: %w", err)
 		}
-		err = runEdit(quiet, remove, id)
+		err = runEdit(remove, id)
 		if err != nil {
 			return fmt.Errorf("edit: %w", err)
 		}
@@ -30,7 +32,7 @@ func init() {
 	editCmd.Flags().BoolP(flagRemove, short(flagRemove), false, "remove the given timer")
 }
 
-func runEdit(quiet, remove bool, id string) error {
+func runEdit(remove bool, id string) error {
 	db := tt.GetDB()
 	var t tt.Timer
 	err := db.GetTimerById(id, &t)
@@ -42,17 +44,45 @@ func runEdit(quiet, remove bool, id string) error {
 		if err != nil {
 			return err
 		}
-		if !quiet {
-			fmt.Printf("removed timer with id %s\n", t.ID)
-		}
+		fmt.Printf("removed timer with id %s\n", t.ID)
 		return nil
 	} else {
-		return fmt.Errorf("no operation provided")
+		t, err = openEditor(t)
+		if err != nil {
+			return err
+		}
+		return db.UpdateTimer(t)
 	}
 }
 
-func getEditParameters(cmd *cobra.Command, args []string) (quiet, remove bool, id string, err error) {
-	flags, err := flags(cmd, flagQuiet, flagRemove)
+func openEditor(timer tt.Timer) (tt.Timer, error) {
+	content, err := json.MarshalIndent(timer, "", "\t")
+	if err != nil {
+		return tt.Timer{}, fmt.Errorf("editor: %w", err)
+	}
+	editor := survey.Editor{
+		Message:       "Press enter to edit the timer",
+		Default:       string(content),
+		AppendDefault: true,
+	}
+	var resp string
+	err = survey.AskOne(&editor, &resp)
+	if err != nil {
+		return tt.Timer{}, fmt.Errorf("editor: %w", err)
+	}
+	var updatedTimer tt.Timer
+	err = json.Unmarshal([]byte(resp), &updatedTimer)
+	if err != nil {
+		return tt.Timer{}, fmt.Errorf("editor: %w", err)
+	}
+	if updatedTimer.ID != timer.ID {
+		return tt.Timer{}, fmt.Errorf("editor: ID of timer changed")
+	}
+	return updatedTimer, nil
+}
+
+func getEditParameters(cmd *cobra.Command, args []string) (remove bool, id string, err error) {
+	flags, err := flags(cmd, flagRemove)
 	if err != nil {
 		return
 	}
@@ -65,5 +95,5 @@ func getEditParameters(cmd *cobra.Command, args []string) (quiet, remove bool, i
 	if err != nil {
 		return
 	}
-	return flags[flagQuiet].(bool), flags[flagRemove].(bool), id, nil
+	return flags[flagRemove].(bool), id, nil
 }

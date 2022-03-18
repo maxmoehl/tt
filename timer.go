@@ -9,6 +9,14 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	groupByProject GroupByOption = "project"
+	groupByTask    GroupByOption = "task"
+	groupByDay     GroupByOption = "day"
+)
+
+type GroupByOption string
+
 // Timer is the central type that stores a timer and all its relevant values.
 type Timer struct {
 	ID      string     `json:"id"`
@@ -67,7 +75,7 @@ func (t Timer) String() string {
 	}
 
 	b.WriteString("Duration: ")
-	b.WriteString(FormatDuration(t.Duration(), GetConfig().GetPrecision()))
+	b.WriteString(FormatDuration(t.Duration()))
 	b.WriteRune('\n')
 
 	b.WriteString("Project : ")
@@ -89,14 +97,14 @@ func (t Timer) String() string {
 
 func (t Timer) groupByKey(f GroupByOption) string {
 	switch f {
-	case GroupByProject:
+	case groupByProject:
 		return t.Project
-	case GroupByTask:
+	case groupByTask:
 		if t.Task == "" {
 			return "no-task"
 		}
 		return t.Task
-	case GroupByDay:
+	case groupByDay:
 		return fmt.Sprintf("%04d-%02d-%02d", t.Start.Year(), t.Start.Month(), t.Start.Day())
 	default:
 		panic(fmt.Sprintf("%s is not a group by field", f))
@@ -122,7 +130,11 @@ func (timers Timers) CSV() (string, error) {
 		return "", err
 	}
 	for _, t := range timers {
-		err = w.Write([]string{t.ID, t.Start.String(), t.Stop.String(), t.Project, t.Task, strings.Join(t.Tags, ",")})
+		stop := ""
+		if t.Stop != nil {
+			stop = t.Stop.String()
+		}
+		err = w.Write([]string{t.ID, t.Start.String(), stop, t.Project, t.Task, strings.Join(t.Tags, ",")})
 		if err != nil {
 			return "", err
 		}
@@ -135,7 +147,24 @@ func (timers Timers) CSV() (string, error) {
 	return b.String(), nil
 }
 
-func (timers Timers) GroupBy(field GroupByOption) map[string]Timers {
+// GroupByTask groups all timers by project and task.
+func (timers Timers) GroupByTask() map[string]map[string]Timers {
+	grouped := make(map[string]map[string]Timers)
+	for k, v := range timers.GroupByProject() {
+		grouped[k] = v.groupBy(groupByTask)
+	}
+	return grouped
+}
+
+func (timers Timers) GroupByProject() map[string]Timers {
+	return timers.groupBy(groupByProject)
+}
+
+func (timers Timers) GroupByDay() map[string]Timers {
+	return timers.groupBy(groupByDay)
+}
+
+func (timers Timers) groupBy(field GroupByOption) map[string]Timers {
 	grouped := make(map[string]Timers)
 	for _, t := range timers {
 		key := t.groupByKey(field)

@@ -44,5 +44,5 @@ type VacationFilter time.Time
 
 func (f VacationFilter) SQL() string {
 	t := time.Time(f)
-	return fmt.Sprintf("json_extract(`json`, '$.day') LIKE '%04d-%02d-%02d%%'", t.Year(), t.Month(), t.Day())
+	return fmt.Sprintf("WHERE json_extract(`json`, '$.day') LIKE '%04d-%02d-%02d%%'", t.Year(), t.Month(), t.Day())
 }

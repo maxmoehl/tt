@@ -52,7 +52,7 @@ func TestSaveInvalidTimerEmptyProject(t *testing.T) {
 func TestGetTimerNotFound(t *testing.T) {
 	db := testDb(t)
 	var timer Timer
-	err := db.GetTimer(nil, OrderBy{}, &timer)
+	err := db.GetTimer(EmptyFilter, OrderBy{}, &timer)
 	if err == nil {
 		t.Fatal("expected error but got nil")
 	}

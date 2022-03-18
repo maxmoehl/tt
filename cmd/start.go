@@ -210,7 +210,6 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 			Name: "tags",
 			Prompt: &survey.Input{
 				Message: "Enter tags (optional)",
-				Default: "", // TODO: maybe we can suggest tags that were used for the same project/task combination
 			},
 		},
 	}

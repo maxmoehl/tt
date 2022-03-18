@@ -14,7 +14,7 @@ func TestVacationFilter_SQL(t *testing.T) {
 		{
 			"simple test",
 			VacationFilter(time.Date(2022, 02, 02, 10, 0, 0, 0, time.Local)),
-			"json_extract(`json`, '$.day') LIKE '2022-02-02%'",
+			"WHERE json_extract(`json`, '$.day') LIKE '2022-02-02%'",
 		},
 	}
 	for _, tt := range tests {

@@ -93,7 +93,7 @@ func statsByDay(timers tt.Timers) error {
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
 		dayTimers := tt.NewFilter(nil, nil, nil, from, from).Timers(timers)
 		worked := dayTimers.Duration()
-		planned, err := plannedTime(from, from)
+		planned, err := tt.PlannedTime(from)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,6 @@ func plannedTime(from time.Time, to time.Time) (time.Duration, error) {
 	if from.IsZero() || to.IsZero() {
 		return 0, fmt.Errorf("from and to must be non-zero times")
 	}
-	to = to.AddDate(0, 0, 1)
 	var d time.Duration
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
 		t, err := tt.PlannedTime(from)

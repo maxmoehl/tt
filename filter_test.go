@@ -1,7 +1,6 @@
 package tt
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -15,13 +14,13 @@ func TestParseFilterString(t *testing.T) {
 	tests := []struct {
 		name         string
 		filterString string
-		want         filter
+		want         *filter
 		wantErr      bool
 	}{
 		{
 			"test filter projects",
 			"project=a,b,c",
-			filter{
+			&filter{
 				project: []string{"a", "b", "c"},
 				task:    nil,
 				since:   time.Time{},
@@ -33,7 +32,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter tasks",
 			"task=x,y,z",
-			filter{
+			&filter{
 				project: nil,
 				task:    []string{"x", "y", "z"},
 				since:   time.Time{},
@@ -45,7 +44,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter tags",
 			"tags=l,m,n",
-			filter{
+			&filter{
 				project: nil,
 				task:    nil,
 				since:   time.Time{},
@@ -57,7 +56,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter since",
 			"since=2021-05-21",
-			filter{
+			&filter{
 				project: nil,
 				task:    nil,
 				since:   time.Date(2021, 5, 21, 0, 0, 0, 0, time.UTC),
@@ -69,11 +68,11 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test filter until",
 			"until=2021-06-21",
-			filter{
+			&filter{
 				project: nil,
 				task:    nil,
 				since:   time.Time{},
-				until:   time.Date(2021, 6, 22, 0, 0, 0, 0, time.UTC),
+				until:   time.Date(2021, 6, 21, 0, 0, 0, 0, time.UTC),
 				tags:    nil,
 			},
 			false,
@@ -81,7 +80,7 @@ func TestParseFilterString(t *testing.T) {
 		{
 			"test multiple filters",
 			"project=a,b;task=x",
-			filter{
+			&filter{
 				project: []string{"a", "b"},
 				task:    []string{"x"},
 				since:   time.Time{},
@@ -99,9 +98,7 @@ func TestParseFilterString(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				fmt.Println(got.SQL())
-				fmt.Println(tt.want.SQL())
-				t.Errorf("GetFilter() got = %v, want %v", got, tt.want)
+				t.Errorf("GetFilter() got = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

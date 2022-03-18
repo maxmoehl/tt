@@ -114,7 +114,7 @@ func (f *filter) SQL() string {
 		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') >= '%s'", f.since.Format(DateFormat)))
 	}
 	if !f.until.IsZero() {
-		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') < '%s'", f.until.Format(DateFormat)))
+		filters = append(filters, fmt.Sprintf("json_extract(`json`, '$.start') < '%s'", f.until.AddDate(0, 0, 1).Format(DateFormat)))
 	}
 	// if there are no filters return TRUE to match all values
 	if len(filters) == 0 {
@@ -159,12 +159,6 @@ func ParseFilterString(filterString string) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	// To make until inclusive we have to add 24h to it since filter.Match
-	// checks if the end of a timer is before until
-	// TODO: this might not be necessary anymore
-	if !f.until.IsZero() {
-		f.until = f.until.Add(time.Hour * 24)
 	}
 	return f, nil
 }
@@ -238,28 +232,6 @@ func stringSliceContainsAny(shouldContain []string, toSearch []string) bool {
 		}
 	}
 	return false
-}
-
-func convertFilterToSql(key string, values []string, operator string) string {
-	if len(values) == 0 {
-		return ""
-	}
-	b := strings.Builder{}
-	for i, v := range values {
-		if i == 0 {
-			b.WriteString("(")
-		} else {
-			b.WriteString(" OR ")
-		}
-		switch operator {
-		case sqlOperatorEquals:
-			b.WriteString(fmt.Sprintf("json_extract(`json`,'$.%s')='%s'", key, v))
-		case sqlOperatorLike:
-			b.WriteString(fmt.Sprintf("json_extract(`json`,'$.%s') LIKE '%%%s%%'", key, v))
-		}
-	}
-	b.WriteString(")")
-	return b.String()
 }
 
 // stringSliceContains checks if the given string is contained in the given

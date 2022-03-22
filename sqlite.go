@@ -30,21 +30,15 @@ type sqlite struct {
 }
 
 func (db *sqlite) create() error {
+	err := db.createKeyValueTable(tableTimers)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+	err = db.createKeyValueTable(tableVacationDays)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
 	setupStmt := `
-	-- create the tables
-	CREATE TABLE IF NOT EXISTS
-		timers
-	(
-		uuid TEXT PRIMARY KEY,
-		json TEXT NOT NULL
-	);
-	CREATE TABLE IF NOT EXISTS
-		vacation_days
-	(
-		uuid TEXT PRIMARY KEY,
-		json TEXT NOT NULL
-	);
-	
 	-- create trigger to prevent collisions
 	CREATE TRIGGER IF NOT EXISTS noCollisions
 		BEFORE INSERT
@@ -73,9 +67,17 @@ func (db *sqlite) create() error {
 					  WHERE json_extract(NEW.json, '$.stop') IS NULL
 						AND json_extract(timers.json, '$.stop') IS NULL);
 	END;`
-	_, err := db.db.Exec(setupStmt)
+	_, err = db.db.Exec(setupStmt)
 	if err != nil {
 		return fmt.Errorf("db: create: %w", err)
+	}
+	return nil
+}
+
+func (db *sqlite) createKeyValueTable(name string) error {
+	_, err := db.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (uuid TEXT PRIMARY KEY,json TEXT NOT NULL);`, name))
+	if err != nil {
+		return fmt.Errorf("create table: %w", err)
 	}
 	return nil
 }
@@ -250,9 +252,9 @@ func (db *sqlite) RemoveVacationDay(id string) error {
 	return db.remove(tableVacationDays, id)
 }
 
-// NewSQLite creates and initializes a new SQLite storage interface.
-// The connection is tested using sql.DB.Ping() and the timers' table
-// is created if it does not exist.
+// NewSQLite creates and initializes a new SQLite storage interface. The
+// connection is tested using DB.Ping() and the needed tables are created if
+// they do not exist.
 func NewSQLite(dbFile string) (DB, error) {
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {

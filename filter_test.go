@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-func TestFilterMatch(t *testing.T) {
-
-}
-
 func TestParseFilterString(t *testing.T) {
 	tests := []struct {
 		name         string

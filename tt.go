@@ -22,13 +22,25 @@ func Start(project, task string, tags []string, timestamp time.Time, copy int) (
 		Field: FieldStart,
 		Order: OrderDsc,
 	}
+	var timers Timers
+	err := db.GetTimers(EmptyFilter, orderBy, &timers)
+	if err != nil {
+		return Timer{}, fmt.Errorf("start: %w", err)
+	}
+
+	if len(timers) > 0 && timers[0].Stop == nil {
+		if GetConfig().AutoStop {
+			_, err = Stop(timestamp)
+			if err != nil {
+				return Timer{}, fmt.Errorf("start: auto-stop: %w", err)
+			}
+		} else {
+			return Timer{}, fmt.Errorf("start: %w: running timer exists", ErrOperationNotPermitted)
+		}
+	}
+
 	var baseTimer Timer
 	if copy > 0 {
-		var timers Timers
-		err := db.GetTimers(EmptyFilter, orderBy, &timers)
-		if err != nil {
-			return Timer{}, fmt.Errorf("start: %w", err)
-		}
 		if len(timers) < copy {
 			return Timer{}, fmt.Errorf("start: copy from timer: %w", ErrNotFound)
 		}
@@ -54,7 +66,7 @@ func Start(project, task string, tags []string, timestamp time.Time, copy int) (
 		t.Tags = baseTimer.Tags
 	}
 
-	err := t.Validate()
+	err = t.Validate()
 	if err != nil {
 		return Timer{}, fmt.Errorf("start: %w", err)
 	}

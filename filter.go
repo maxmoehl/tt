@@ -16,9 +16,6 @@ const (
 	filtersSeparator = ";"
 	valuesSeparator  = ","
 
-	sqlOperatorLike   = "LIKE"
-	sqlOperatorEquals = "="
-
 	DateFormat = "2006-01-02"
 )
 

@@ -131,6 +131,7 @@ func plannedTime(from time.Time, to time.Time) (time.Duration, error) {
 		return 0, fmt.Errorf("from and to must be non-zero times")
 	}
 	var d time.Duration
+	to = to.AddDate(0, 0, 1)
 	for ; !datesEqual(from, to); from = from.AddDate(0, 0, 1) {
 		t, err := tt.PlannedTime(from)
 		if err != nil {

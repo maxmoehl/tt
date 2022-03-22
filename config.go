@@ -24,6 +24,7 @@ type Config struct {
 	// values are: [s second m minute h hour]
 	// Default: second
 	Precision string `json:"precision"`
+	AutoStop  bool   `json:"autoStop"`
 	Timeclock struct {
 		HoursPerDay int `json:"hoursPerDay"`
 		DaysPerWeek struct {

@@ -37,6 +37,9 @@ func (t Timer) Validate() error {
 	if t.Stop != nil && t.Stop.IsZero() {
 		return fmt.Errorf("%w: stop is non-nil but zero", ErrInvalidTimer)
 	}
+	if t.Stop != nil && t.Stop.Unix() <= t.Start.Unix() {
+		return fmt.Errorf("%w: stop is equal to or less than start", ErrInvalidTimer)
+	}
 	if t.Project == "" {
 		return fmt.Errorf("%w: project is an empty string", ErrInvalidTimer)
 	}

@@ -149,10 +149,14 @@ func printTimersByTask(groupedTimers map[string]map[string]tt.Timers, short bool
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
+		var d time.Duration
+		for _, t := range groupedTimers[key] {
+			d += t.Duration()
+		}
 		if !short {
 			fmt.Printf("####%s####\n", strings.Repeat("#", len(key)))
 		}
-		fmt.Printf("### %s ###\n", key)
+		fmt.Printf("### %s (%s) ###\n", key, tt.FormatDuration(d))
 		if !short {
 			fmt.Printf("####%s####\n\n", strings.Repeat("#", len(key)))
 		}

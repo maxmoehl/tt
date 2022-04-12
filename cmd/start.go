@@ -175,7 +175,7 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 				Default: "",
 				Suggest: func(toComplete string) (suggestions []string) {
 					for _, project := range allProjects {
-						if strings.HasPrefix(project, toComplete) {
+						if strings.HasPrefix(strings.ToLower(project), strings.ToLower(toComplete)) {
 							suggestions = append(suggestions, project)
 						}
 					}
@@ -198,7 +198,7 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 				Default: "",
 				Suggest: func(toComplete string) (suggestions []string) {
 					for _, task := range allTasks[answers.Project] {
-						if strings.HasPrefix(task, toComplete) {
+						if strings.HasPrefix(strings.ToLower(task), strings.ToLower(toComplete)) {
 							suggestions = append(suggestions, task)
 						}
 					}

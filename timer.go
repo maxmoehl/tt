@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 const (
@@ -19,29 +19,19 @@ type GroupByOption string
 
 // Timer is the central type that stores a timer and all its relevant values.
 type Timer struct {
-	ID      string     `json:"id"`
-	Start   time.Time  `json:"start"`
-	Stop    *time.Time `json:"stop,omitempty"`
-	Project string     `json:"project"`
+	ID      string     `json:"id" validate:"required,uuid4"`
+	Start   time.Time  `json:"start" validate:"required"`
+	Stop    *time.Time `json:"stop,omitempty" validate:"omitempty,gtfield=Start"`
+	Project string     `json:"project" validate:"required"`
 	Task    string     `json:"task,omitempty"`
 	Tags    []string   `json:"tags,omitempty"`
 }
 
 func (t Timer) Validate() error {
-	if _, err := uuid.Parse(t.ID); err != nil {
-		return fmt.Errorf("%w: id is not a valid uuid", ErrInvalidTimer)
-	}
-	if t.Start.IsZero() {
-		return fmt.Errorf("%w: start time is zero", ErrInvalidTimer)
-	}
-	if t.Stop != nil && t.Stop.IsZero() {
-		return fmt.Errorf("%w: stop is non-nil but zero", ErrInvalidTimer)
-	}
-	if t.Stop != nil && t.Stop.Unix() <= t.Start.Unix() {
-		return fmt.Errorf("%w: stop is equal to or less than start", ErrInvalidTimer)
-	}
-	if t.Project == "" {
-		return fmt.Errorf("%w: project is an empty string", ErrInvalidTimer)
+	validate := validator.New()
+	err := validate.Struct(t)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidTimer, err.Error())
 	}
 	return nil
 }

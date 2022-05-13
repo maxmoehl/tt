@@ -81,10 +81,10 @@ func (d Day) String() string {
 	// TODO: how do we handle edge cases?
 	//       1. working on vacation
 	//       2. working on non-work-days
-	if d.Vacation == nil && !IsWorkDay(d.Time) && tracked == 0 {
+	if !IsWorkDay(d.Time) && tracked == 0 {
+		// could also be a vacation day but we don't care if we shouldn't work and didn't work
 		return fmt.Sprintf("%02d       ", d.Time.Day())
-	} else if (d.Vacation == nil || d.Vacation.Half) && IsWorkDay(d.Time) {
-
+	} else if (d.Vacation == nil || d.Vacation.Half) && (planned != 0 || tracked != 0) {
 		var coloring func(string, ...interface{}) string
 		if planned < tracked {
 			coloring = color.GreenString

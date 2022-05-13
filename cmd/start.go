@@ -100,10 +100,6 @@ func getStartParameters(cmd *cobra.Command, args []string) (project, task string
 		err = fmt.Errorf("interactive and quiet cannot be set together")
 		return
 	}
-	if flags[flagInteractive].(bool) {
-		project, task, timestamp, tags, err = getStartParametersInteractive()
-		return
-	}
 	if flags[flagResume].(bool) && flags[flagCopy].(int) <= 0 {
 		flags[flagCopy] = 1
 	}
@@ -112,6 +108,10 @@ func getStartParameters(cmd *cobra.Command, args []string) (project, task string
 	}
 	if len(args) > 1 {
 		task = args[1]
+	}
+	if flags[flagInteractive].(bool) || (project == "" && flags[flagCopy] == 0) {
+		project, task, timestamp, tags, err = getStartParametersInteractive()
+		return
 	}
 	return project, task, flags[flagTags].([]string), flags[flagTimestamp].(time.Time), flags[flagCopy].(int), nil
 }
@@ -159,6 +159,8 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 		Timestamp string
 		Tags      string
 	})
+
+	var suggestedTags []string
 
 	qs := []*survey.Question{
 		{
@@ -210,6 +212,33 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 			Name: "tags",
 			Prompt: &survey.Input{
 				Message: "Enter tags (optional)",
+				Default: "",
+				Suggest: func(toComplete string) []string {
+					if suggestedTags != nil {
+						return suggestedTags
+					}
+					suggestedTags = make([]string, 0)
+					f := tt.NewFilter([]string{answers.Project}, []string{answers.Task}, nil, time.Time{}, time.Time{})
+					var timers tt.Timers
+					err = tt.GetDB().GetTimers(f, tt.OrderBy{}, &timers)
+					if err != nil {
+						panic(err.Error())
+					}
+					for _, t := range timers {
+						tags := strings.Join(t.Tags, ",")
+						skip := false
+						for _, existingTags := range suggestedTags {
+							if tags == existingTags {
+								skip = true
+							}
+						}
+						if skip {
+							continue
+						}
+						suggestedTags = append(suggestedTags, tags)
+					}
+					return suggestedTags
+				},
 			},
 		},
 	}

@@ -162,11 +162,17 @@ func ParseFilterString(filterString string) (Filter, error) {
 
 // NewFilter allows to create a filter that is not parsed from a filter string.
 func NewFilter(projects, tasks, tags []string, since, until time.Time) Filter {
+	if !since.IsZero() {
+		since = time.Date(since.Year(), since.Month(), since.Day(), 0, 0, 0, 0, time.UTC)
+	}
+	if !until.IsZero() {
+		until = time.Date(until.Year(), until.Month(), until.Day(), 0, 0, 0, 0, time.UTC)
+	}
 	return &filter{
 		project: projects,
 		task:    tasks,
-		since:   time.Date(since.Year(), since.Month(), since.Day(), 0, 0, 0, 0, time.UTC),
-		until:   time.Date(until.Year(), until.Month(), until.Day(), 0, 0, 0, 0, time.UTC),
+		since:   since,
+		until:   until,
 		tags:    tags,
 	}
 }

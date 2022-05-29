@@ -1,44 +1,62 @@
 package tt
 
 import (
+	"errors"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
 
-const sqliteConfig = `precision: m
-workHours: 8
-storageType: sqlite
-workDays:
-  monday: true
-  tuesday: true
-  wednesday: true
-  thursday: true
-  friday: true
-  saturday: false
-  sunday: false`
-
-func setupSqliteTest() error {
-	err := SetConfig(sqliteConfig)
+func testDb(t *testing.T) DB {
+	db, err := NewSQLite(":memory:")
 	if err != nil {
-		return err
+		t.Fatalf("unable to create in-memory database: %s", err.Error())
 	}
-	err = InitStorage()
-	if err != nil {
-		return err
-	}
-	return nil
+	return db
 }
 
-func TestNewSQLite(t *testing.T) {
-	err := setupSqliteTest()
+func TestSaveValidTimer(t *testing.T) {
+	db := testDb(t)
+	err := db.SaveTimer(Timer{
+		ID:      uuid.Must(uuid.NewRandom()).String(),
+		Start:   time.Now(),
+		Stop:    nil,
+		Project: "test",
+		Task:    "test",
+		Tags:    []string{"a", "b"},
+	})
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatalf("expected nil error but got '%s'", err.Error())
 	}
-	s, err := NewSQLite(GetConfig())
-	if err != nil {
-		t.Fatal(err.Error())
+}
+
+func TestSaveInvalidTimerEmptyProject(t *testing.T) {
+	db := testDb(t)
+	err := db.SaveTimer(Timer{
+		ID:      uuid.Must(uuid.NewRandom()).String(),
+		Start:   time.Now(),
+		Stop:    nil,
+		Project: "",
+		Task:    "test",
+		Tags:    []string{"a", "b"},
+	})
+	if err == nil {
+		t.Fatal("expected non-nil error but got nil")
 	}
-	_, ok := s.(*sqlite)
-	if !ok {
-		t.Fatal("expected storage to be of type *sqlite")
+	if !errors.Is(err, ErrInvalidTimer) {
+		t.Fatalf("expected error to contain '%s', but got '%s'", ErrInvalidTimer, err.Error())
+	}
+}
+
+func TestGetTimerNotFound(t *testing.T) {
+	db := testDb(t)
+	var timer Timer
+	err := db.GetTimer(EmptyFilter, OrderBy{}, &timer)
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected error to contain '%s', but got '%s'", ErrNotFound, err.Error())
 	}
 }

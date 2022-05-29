@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+option go_package = "github.com/maxmoehl/tt/grpc";
+
+package tt;
+
+service Tt {
+  rpc Start(StartParameters) returns (Timer) {}
+  rpc Stop(StopParameters) returns (Timer) {}
+  rpc Resume(ResumeParameters) returns (Timer) {}
+  rpc List(ListParameters) returns (List) {}
+}
+
+message List {
+  repeated Timer Timers = 1;
+}
+
+message Timer {
+  string id = 1;
+  string project = 2;
+  string task = 3;
+  repeated string tags = 4;
+  string start = 5;
+  string stop = 6;
+}
+
+message Filter {
+  repeated string project = 1;
+  repeated string task = 2;
+  repeated string tags = 3;
+  string since = 4;
+  string until = 5;
+}
+
+message OrderBy {
+  string Field = 1;
+  string Order = 2;
+}
+
+message StartParameters {
+  string project = 1;
+  string task = 2;
+  repeated string tags = 3;
+  string timestamp = 4;
+}
+
+message StopParameters {
+  string timestamp = 1;
+}
+
+message ResumeParameters {
+  string timestamp = 1;
+}
+
+message ListParameters {
+  Filter Filter = 1;
+  OrderBy OrderBy = 2;
+}

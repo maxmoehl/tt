@@ -2,251 +2,272 @@ package tt
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3" // import database driver
+	_ "github.com/mattn/go-sqlite3"
 )
 
-type scanable interface {
-	Scan(dest ...interface{}) error
+const (
+	tableTimers       = "timers"
+	tableVacationDays = "vacation_days"
+)
+
+type DatabaseFilter interface {
+	SQL() string
 }
+
+type emptyDbFilter struct{}
+
+func (_ emptyDbFilter) SQL() string { return "" }
+
+var EmptyDbFilter emptyDbFilter
 
 type sqlite struct {
 	db *sql.DB
 }
 
-func (db *sqlite) GetTimer(uuid uuid.UUID) (Timer, Error) {
-	selectStmt := `
-		SELECT *
-		FROM timers
-		WHERE timers.uuid = ?;`
-	row := db.db.QueryRow(selectStmt, uuid.String())
-	timer, err := db.scanRow(row)
+func (db *sqlite) create() error {
+	err := db.createKeyValueTable(tableTimers)
 	if err != nil {
-		return Timer{}, NewError("unable to get timer").WithCause(err)
+		return fmt.Errorf("db: %w", err)
 	}
-	return timer, nil
-}
-
-func (db *sqlite) GetLastTimer(running bool) (Timer, Error) {
-	selectStmt := `
-		SELECT *
-		FROM timers
-		ORDER BY start DESC
-		LIMIT 2;`
-	rows, err := db.db.Query(selectStmt)
+	err = db.createKeyValueTable(tableVacationDays)
 	if err != nil {
-		return Timer{}, ErrInternalError.WithCause(err)
+		return fmt.Errorf("db: %w", err)
 	}
-	var timers Timers
-	for rows.Next() {
-		t, err := db.scanRow(rows)
-		if err != nil {
-			return Timer{}, NewError("unable to get last timer").WithCause(err)
-		}
-		timers = append(timers, t)
-	}
-	if rows.Err() != nil {
-		return Timer{}, ErrInternalError.WithCause(rows.Err())
-	}
-	if len(timers) == 0 {
-		return Timer{}, ErrNotFound
-	}
-	timer := timers.Last(running)
-	if timer.IsZero() {
-		return Timer{}, ErrNotFound
-	}
-	return timer, nil
-}
-
-func (db *sqlite) GetTimers(filter Filter) (Timers, Error) {
-	selectStmt := fmt.Sprintf(`
-		SELECT *
-		FROM timers
-		WHERE %s;`, filter.SQL())
-	rows, err := db.db.Query(selectStmt)
+	setupStmt := `
+	-- create trigger to prevent collisions
+	CREATE TRIGGER IF NOT EXISTS noCollisions
+		BEFORE INSERT
+		ON timers
+		FOR EACH ROW
+	BEGIN
+		SELECT RAISE(ROLLBACK, 'new timer collides with existing one')
+		WHERE EXISTS(
+					  SELECT 1
+					  FROM timers
+					  WHERE (json_extract(timers.json, '$.start') <= json_extract(NEW.json, '$.start')
+								 AND json_extract(timers.json, '$.stop') > json_extract(NEW.json, '$.start'))
+						 OR (json_extract(timers.json, '$.start') > json_extract(NEW.json, '$.start')
+								 AND json_extract(timers.json, '$.start') < json_extract(NEW.json, '$.stop')));
+	END;
+	-- create trigger to prevent multiple running timers
+	CREATE TRIGGER IF NOT EXISTS onlyOneRunning
+		BEFORE INSERT
+		ON timers
+		FOR EACH ROW
+	BEGIN
+		SELECT RAISE(ROLLBACK, 'running timer already exists, cannot have two running timers')
+		WHERE EXISTS(
+					  SELECT 1
+					  FROM timers
+					  WHERE json_extract(NEW.json, '$.stop') IS NULL
+						AND json_extract(timers.json, '$.stop') IS NULL);
+	END;`
+	_, err = db.db.Exec(setupStmt)
 	if err != nil {
-		return nil, ErrInternalError.WithCause(err)
-	}
-	var timers Timers
-	var t Timer
-	for rows.Next() {
-		t, err = db.scanRow(rows)
-		if err != nil {
-			return nil, NewError("unable to get timers").WithCause(err)
-		}
-		// We still filter the timers since the sql filtering for tags
-		// is questionable at best
-		if filter.Match(t) {
-			timers = append(timers, t)
-		}
-	}
-	if rows.Err() != nil {
-		return nil, ErrInternalError.WithCause(rows.Err())
-	}
-	return timers, nil
-}
-
-func (db *sqlite) StoreTimer(timer Timer) Error {
-	insertStmt := `
-		INSERT INTO timers (uuid, start, stop, project, task, tags)
-		VALUES (?, ?, ?, ?, ?, ?);`
-	if timer.IsZero() {
-		return ErrInvalidData.WithCause(NewErrorf("timer is zero"))
-	}
-	id := timer.Uuid.String()
-	start := timer.Start.Unix()
-	var stop, task, tags interface{}
-	if !timer.Stop.IsZero() {
-		stop = timer.Stop.Unix()
-	}
-	if timer.Task != "" {
-		task = timer.Task
-	}
-	if len(timer.Tags) > 0 {
-		tags = strings.Join(timer.Tags, ",")
-	}
-	_, err := db.db.Exec(insertStmt, id, start, stop, timer.Project, task, tags)
-	if err != nil {
-		return ErrInternalError.WithCause(err)
+		return fmt.Errorf("db: create: %w", err)
 	}
 	return nil
 }
 
-func (db *sqlite) UpdateTimer(timer Timer) Error {
-	updateStmt := `
-		UPDATE timers
-		SET stop = ?
-		WHERE uuid = ? AND stop IS NULL;`
-	res, err := db.db.Exec(updateStmt, timer.Stop.Unix(), timer.Uuid.String())
+func (db *sqlite) createKeyValueTable(name string) error {
+	_, err := db.db.Exec(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (uuid TEXT PRIMARY KEY,json TEXT NOT NULL);`, name))
 	if err != nil {
-		return ErrInternalError.WithCause(err)
+		return fmt.Errorf("create table: %w", err)
+	}
+	return nil
+}
+
+func (db *sqlite) save(table string, id string, value interface{}) error {
+	insertStmt := fmt.Sprintf("INSERT INTO %s VALUES (?, ?);", table)
+
+	b, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("save: %w: %s", ErrInvalidData, err.Error())
+	}
+
+	_, err = db.db.Exec(insertStmt, id, string(b))
+	if err != nil {
+		return fmt.Errorf("save: %w: %s", ErrInternal, err.Error())
+	}
+	return nil
+}
+
+func (db *sqlite) getOne(table string, filter DatabaseFilter, orderBy OrderBy, target interface{}) error {
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, filter.SQL(), orderBy.SQL())
+
+	row := db.db.QueryRow(selectStmt)
+	var content string
+	err := row.Scan(&content)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("get-one: %w", ErrNotFound)
+	} else if err != nil {
+		return fmt.Errorf("%w: %s", ErrInternal, err.Error())
+	}
+
+	err = json.Unmarshal([]byte(content), target)
+	if err != nil {
+		return fmt.Errorf("get-one: %w: %s", ErrInternal, err.Error())
+	}
+	return nil
+}
+
+func (db *sqlite) getOneById(table string, id string, target interface{}) error {
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s WHERE `uuid` == ?;", table)
+
+	row := db.db.QueryRow(selectStmt, id)
+	var content string
+	err := row.Scan(&content)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("get-one-by-id: %w", ErrNotFound)
+	} else if err != nil {
+		return fmt.Errorf("%w: %s", ErrInternal, err.Error())
+	}
+
+	err = json.Unmarshal([]byte(content), target)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInternal, err.Error())
+	}
+	return nil
+}
+
+func (db *sqlite) getMultiple(table string, filter DatabaseFilter, orderBy OrderBy, target interface{}) error {
+	fs := filter.SQL()
+	os := orderBy.SQL()
+	selectStmt := fmt.Sprintf("SELECT `json` FROM %s %s %s;", table, fs, os)
+
+	rows, err := db.db.Query(selectStmt)
+	if err != nil {
+		return fmt.Errorf("get-multiple: %w: %s", ErrInternal, err.Error())
+	}
+	var items []string
+	for rows.Next() {
+		var item string
+		if rows.Err() != nil {
+			return fmt.Errorf("get-multiple: %w: %s", ErrInternal, rows.Err().Error())
+		}
+		err = rows.Scan(&item)
+		if err != nil {
+			return fmt.Errorf("get-multiple: %w: %s", ErrInternal, err.Error())
+		}
+		items = append(items, item)
+	}
+	content := fmt.Sprintf("[%s]", strings.Join(items, ","))
+
+	err = json.Unmarshal([]byte(content), target)
+	if err != nil {
+		return fmt.Errorf("get-multiple: %w: %s", ErrInternal, err.Error())
+	}
+	return nil
+}
+
+func (db *sqlite) update(table string, id string, value interface{}) error {
+	updateStmt := fmt.Sprintf("UPDATE %s SET `json` = ? WHERE `uuid` = ?;", table)
+
+	b, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("update: %w: %s", ErrInvalidData, err.Error())
+	}
+
+	res, err := db.db.Exec(updateStmt, string(b), id)
+	if err != nil {
+		return fmt.Errorf("update: %w: %s", ErrInternal, err.Error())
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return ErrInternalError.WithCause(err)
+		return fmt.Errorf("update: %w: %s", ErrInternal, err.Error())
 	}
 	if rowsAffected == 0 {
-		return ErrNotFound.WithCause(NewError("either the timer could not be found, or it already has a stop time"))
+		return fmt.Errorf("udpate: %w", ErrNotFound)
 	}
 	return nil
 }
 
-func (db *sqlite) create() Error {
-	setupStmt := `
-		-- create the tables
-		CREATE TABLE IF NOT EXISTS
-			timers
-		(
-			uuid    TEXT PRIMARY KEY,
-			start   INTEGER NOT NULL,
-			stop    INTEGER,
-			project TEXT    NOT NULL,
-			task    TEXT,
-			tags    TEXT
-		);
-		-- create trigger to prevent collisions
-		CREATE TRIGGER IF NOT EXISTS noCollisions
-			BEFORE INSERT
-			ON timers
-			FOR EACH ROW
-		BEGIN
-			SELECT RAISE(ROLLBACK, 'new timer collides with existing one')
-			WHERE EXISTS(
-						  SELECT 1
-						  FROM timers
-						  WHERE (timers.start <= NEW.start AND timers.stop > NEW.start)
-							 OR (timers.start > NEW.start AND timers.start < NEW.stop));
-		END;
-		-- create trigger to prevent multiple running timers
-		CREATE TRIGGER IF NOT EXISTS onlyOneRunning
-			BEFORE INSERT
-			ON timers
-			FOR EACH ROW
-		BEGIN
-			SELECT RAISE(ROLLBACK, 'running timer already exists, cannot have two running timers')
-			WHERE EXISTS(
-						  SELECT 1
-						  FROM timers
-						  WHERE NEW.stop IS NULL
-							AND timers.stop IS NULL);
-		END;`
-	_, err := db.db.Exec(setupStmt)
+func (db *sqlite) remove(table string, id string) error {
+	deleteStmt := fmt.Sprintf("DELETE FROM %s WHERE `uuid` = ?;", table)
+
+	res, err := db.db.Exec(deleteStmt, id)
 	if err != nil {
-		return ErrInternalError.WithCause(err)
+		return fmt.Errorf("remove: %w: %s", ErrInternal, err.Error())
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("remove: %w: %s", ErrInternal, err.Error())
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("remove: %w", ErrNotFound)
 	}
 	return nil
 }
 
-func (db *sqlite) scanRow(row scanable) (Timer, Error) {
-	var id, project, task, tags *string
-	var start, stop *int64
-	err := row.Scan(&id, &start, &stop, &project, &task, &tags)
+func (db *sqlite) SaveTimer(timer Timer) error {
+	err := timer.Validate()
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Timer{}, ErrNotFound
-		}
-		return Timer{}, ErrInternalError.WithCause(err)
+		return err
 	}
-	if id == nil {
-		return Timer{}, ErrInternalError.WithCause(NewError("found nil uuid"))
-	}
-	UUID, err := uuid.Parse(*id)
-	if err != nil {
-		return Timer{}, ErrInternalError.WithCause(err)
-	}
-	if start == nil {
-		return Timer{}, ErrInternalError.WithCause(NewError("found nil start time"))
-	}
-	var stopTime time.Time
-	if stop != nil {
-		stopTime = time.Unix(*stop, 0)
-	}
-	if project == nil {
-		return Timer{}, ErrInternalError.WithCause(NewError("found nil project string"))
-	}
-	var taskString string
-	if task != nil {
-		taskString = *task
-	} else {
-		taskString = ""
-	}
-	var tagList []string
-	if tags != nil {
-		tagList = strings.Split(*tags, ",")
-	}
-	return Timer{
-		Uuid:    UUID,
-		Start:   time.Unix(*start, 0),
-		Stop:    stopTime,
-		Project: *project,
-		Task:    taskString,
-		Tags:    tagList,
-	}, nil
+	return db.save(tableTimers, timer.ID, timer)
 }
 
-// NewSQLite creates and initializes a new SQLite storage interface.
-// The connection is tested using sql.DB.Ping() and the timers' table
-// is created if it does not exist.
-func NewSQLite(c Config) (Storage, Error) {
-	storage := &sqlite{}
-	var e error
-	storage.db, e = sql.Open("sqlite3", filepath.Join(c.HomeDir(), "storage.db"))
-	if e != nil {
-		return nil, ErrInternalError.WithCause(e)
-	}
-	e = storage.db.Ping()
-	if e != nil {
-		return nil, ErrInternalError.WithCause(e)
-	}
-	err := storage.create()
+func (db *sqlite) GetTimer(filter Filter, orderBy OrderBy, timer *Timer) error {
+	return db.getOne(tableTimers, filter, orderBy, timer)
+}
+
+func (db *sqlite) GetTimerById(id string, timer *Timer) error {
+	return db.getOneById(tableTimers, id, timer)
+}
+
+func (db *sqlite) GetTimers(filter Filter, orderBy OrderBy, timers *Timers) error {
+	return db.getMultiple(tableTimers, filter, orderBy, timers)
+}
+
+func (db *sqlite) UpdateTimer(timer Timer) error {
+	err := timer.Validate()
 	if err != nil {
-		return nil, NewError("unable to create table (if it doesn't exist yet) db").WithCause(err)
+		return err
 	}
-	return storage, nil
+	return db.update(tableTimers, timer.ID, timer)
+}
+
+func (db *sqlite) RemoveTimer(id string) error {
+	return db.remove(tableTimers, id)
+}
+
+func (db *sqlite) SaveVacationDay(vacationDay VacationDay) error {
+	return db.save(tableVacationDays, vacationDay.ID, vacationDay)
+}
+
+func (db *sqlite) GetVacationDay(filter VacationFilter, vacationDay *VacationDay) error {
+	return db.getOne(tableVacationDays, filter, OrderBy{}, vacationDay)
+}
+
+func (db *sqlite) GetVacationDays(orderBy OrderBy, vacationDays *[]VacationDay) error {
+	return db.getMultiple(tableVacationDays, EmptyDbFilter, orderBy, vacationDays)
+}
+
+func (db *sqlite) RemoveVacationDay(id string) error {
+	return db.remove(tableVacationDays, id)
+}
+
+// NewSQLite creates and initializes a new SQLite storage interface. The
+// connection is tested using DB.Ping() and the needed tables are created if
+// they do not exist.
+func NewSQLite(dbFile string) (DB, error) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		return &sqlite{}, fmt.Errorf("%w: %s", ErrInternal, err.Error())
+	}
+	err = db.Ping()
+	if err != nil {
+		return &sqlite{}, fmt.Errorf("%w: %s", ErrInternal, err.Error())
+	}
+	ttDB := &sqlite{db}
+	err = ttDB.create()
+	if err != nil {
+		return &sqlite{}, fmt.Errorf("unable to init databse: %w", err)
+	}
+	return ttDB, nil
 }

@@ -9,9 +9,8 @@
 
 The environment variable `TT_HOME_DIR` specifies where the application should look for
 a configuration file and store any information it collects. If `TT_HOME_DIR` is not set
-`$HOME/.tt` is used. If a file named `config.yaml` is present in the directory the
-config is read form it, otherwise defaults are used. See the `config/config.go` for
-more details.
+`$HOME/.tt` is used. If a file named `config.json` is present in the directory the
+config is read from it, otherwise defaults are used.
 
 # Installation
 
@@ -19,11 +18,16 @@ We are currently lacking automated tests therefore install this application is a
 own risk. To get the most recent version (that is somewhat manually tested) set a valid
 version instead of `latest`, i.e. `v0.1.1`.
 
+The build tag `json1` is needed to compile `go-sqlite3` with support for JSON. The
+optional build tag `grpc` can be used to enable a new sub command to start a [gRPC](https://grpc.io)
+server. However, this roughly doubles the size of the resulting binary from around
+9 MB to 16MB.
+
 ```
-$ go install github.com/maxmoehl/tt@latest
+$ go install -tags "json1" github.com/maxmoehl/tt@latest
 ```
 
-If you already installed a version, you can check with the --version flag which version
+If you already installed a version, you can check with the `--version` flag which version
 you have installed.
 
 ```
@@ -35,11 +39,3 @@ tt version v0.1.1
 
 Documentation is available as part of the cli. Only calling `tt` prints out a help
 section from which you can explore the different commands.
-
-# To-Do
-- [ ] rename `cli` to `tt` which would allow for `go install github.com/maxmoehl/tt/tt@version`
-  - maybe we can also just move the files if we reduce the core application a bit the additional functionality
-    would go into a plugin folder
-- [ ] switch to a plugin based approach to keep the core app small
-  - [ ] define a plugin interface
-  - [ ] think about possible things to plug (commands, storage implementations, ...)

@@ -143,14 +143,22 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 		}
 	}
 
-	timestampDefault := ""
+	timestampDefaultStr := ""
+	timestampDefault := time.Now().Round(tt.GetConfig().GetRoundStartTime())
 	if len(timers) > 0 && timers[0].Stop != nil {
-		latestStopTime := *timers[0].Stop
-		if datesEqual(time.Now(), latestStopTime) {
-			timestampDefault = fmt.Sprintf("%02d:%02d", latestStopTime.Hour(), latestStopTime.Minute())
-		} else {
-			timestampDefault = fmt.Sprintf("%04d-%02d-%02d %02d:%02d", latestStopTime.Year(), latestStopTime.Month(), latestStopTime.Day(), latestStopTime.Hour(), latestStopTime.Minute())
-		}
+		timestampDefault = *timers[0].Stop
+
+	}
+
+	if tt.GetConfig().GetRoundStartTime() == 0 {
+		timestampDefault = timestampDefault.Round(tt.GetConfig().GetRoundStartTime())
+	}
+
+	if datesEqual(time.Now(), timestampDefault) {
+		// today, so we can leave out the date
+		timestampDefaultStr = fmt.Sprintf("%02d:%02d", timestampDefault.Hour(), timestampDefault.Minute())
+	} else {
+		timestampDefaultStr = fmt.Sprintf("%04d-%02d-%02d %02d:%02d", timestampDefault.Year(), timestampDefault.Month(), timestampDefault.Day(), timestampDefault.Hour(), timestampDefault.Minute())
 	}
 
 	answers := new(struct {
@@ -167,7 +175,7 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 			Name: "timestamp",
 			Prompt: &survey.Input{
 				Message: "Enter a start timestamp",
-				Default: timestampDefault,
+				Default: timestampDefaultStr,
 			},
 		},
 		{

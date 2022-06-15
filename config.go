@@ -3,6 +3,7 @@ package tt
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -25,7 +26,14 @@ type Config struct {
 	// Default: second
 	Precision string `json:"precision"`
 	AutoStop  bool   `json:"autoStop"`
-	Timeclock struct {
+	// RoundStartTime will take the start time and round by the factor given.
+	// Example:
+	//   60s: 13:45:23 -> 13:45:00
+	//   60s: 09:01:59 -> 09:02:00
+	//   5m : 23:32:29 -> 23:30:00
+	// Refer to time.Time.Round on how it works
+	RoundStartTime string `json:"roundStartTime"`
+	Timeclock      struct {
 		HoursPerDay int `json:"hoursPerDay"`
 		DaysPerWeek struct {
 			Monday    bool `json:"monday"`
@@ -59,6 +67,22 @@ func (c Config) GetPrecision() time.Duration {
 	}
 }
 
+func (c Config) Validate() error {
+	_, err := time.ParseDuration(c.RoundStartTime)
+	if err != nil {
+		return fmt.Errorf("config: validate: %w", err)
+	}
+	return nil
+}
+
+func (c Config) GetRoundStartTime() time.Duration {
+	d, err := time.ParseDuration(c.RoundStartTime)
+	if err != nil {
+		panic(err.Error())
+	}
+	return d
+}
+
 // GetConfig returns the current Config and lazy loads it if necessary.
 func GetConfig() Config {
 	if c == nil {
@@ -77,6 +101,7 @@ func (Config) HomeDir() string {
 	if ttHomeDir == "" {
 		ttHomeDir = filepath.Join(os.Getenv("HOME"), ".tt")
 	}
+
 	return ttHomeDir
 }
 
@@ -88,6 +113,7 @@ func (c Config) DBFile() string {
 func LoadConfig() error {
 	c = &Config{}
 	ttHomeDir := c.HomeDir()
+
 	file, err := os.Open(filepath.Join(ttHomeDir, "config.json"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -95,5 +121,20 @@ func LoadConfig() error {
 		}
 		return err
 	}
-	return json.NewDecoder(file).Decode(c)
+
+	err = json.NewDecoder(file).Decode(c)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	if c.RoundStartTime == "" {
+		c.RoundStartTime = "0"
+	}
+
+	err = c.Validate()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	return nil
 }

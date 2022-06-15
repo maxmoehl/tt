@@ -18,6 +18,7 @@ func List(filter Filter, orderBy OrderBy) (Timers, error) {
 
 func Start(project, task string, tags []string, timestamp time.Time, copy int) (Timer, error) {
 	db := GetDB()
+	c := GetConfig()
 	orderBy := OrderBy{
 		Field: FieldStart,
 		Order: OrderDsc,
@@ -28,8 +29,12 @@ func Start(project, task string, tags []string, timestamp time.Time, copy int) (
 		return Timer{}, fmt.Errorf("start: %w", err)
 	}
 
+	if c.GetRoundStartTime() > 0 {
+		timestamp = timestamp.Round(c.GetRoundStartTime())
+	}
+
 	if len(timers) > 0 && timers[0].Stop == nil {
-		if GetConfig().AutoStop {
+		if c.AutoStop {
 			_, err = Stop(timestamp)
 			if err != nil {
 				return Timer{}, fmt.Errorf("start: auto-stop: %w", err)
@@ -70,7 +75,7 @@ func Start(project, task string, tags []string, timestamp time.Time, copy int) (
 	if err != nil {
 		return Timer{}, fmt.Errorf("start: %w", err)
 	}
-	err = GetDB().SaveTimer(t)
+	err = db.SaveTimer(t)
 	if err != nil {
 		return Timer{}, fmt.Errorf("start: %w", err)
 	}

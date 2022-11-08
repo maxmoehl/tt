@@ -14,6 +14,7 @@ import (
 //       each const has something like `usage=does a, b and c` and
 //       `type=bool` and we generate most of the code below based on that.
 //       we could have functions to register flags with ease and have common usages etc.
+
 const (
 	// flagCopy return type string
 	flagCopy = "copy"
@@ -133,6 +134,6 @@ func getTimestampFlag(cmd *cobra.Command) (interface{}, error) {
 	if rawTimestamp != "" {
 		return tt.ParseTime(rawTimestamp)
 	} else {
-		return time.Now(), nil
+		return time.Now().Round(tt.GetConfig().GetRoundStartTime()), nil
 	}
 }

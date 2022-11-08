@@ -3,16 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
-
-// version to be set during build process:
-//   go install \
-//     -ldflags "-X main.version=vMAJOR.MINOR.PATCH-label" \
-//     -tags "json1"
-//     github.com/maxmoehl/tt/tt
 
 var rootCmd = &cobra.Command{
 	Use:   "tt",
@@ -44,11 +39,36 @@ might fail and statistics or analytics may be wrong.`,
 }
 
 func init() {
+	rootCmd.Version = version()
 	rootCmd.PersistentFlags().BoolP(flagQuiet, short(flagQuiet), false, "suppress all output to stdout")
 	rootCmd.PersistentFlags().BoolP(flagNoColor, short(flagNoColor), false, "disable colored output")
 }
 
-func RootCmd(version string) *cobra.Command {
-	rootCmd.Version = version
+func RootCmd() *cobra.Command {
 	return rootCmd
+}
+
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		panic("tt must be built with go module support")
+	}
+
+	var commit, dirty string
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			commit = setting.Value
+		case "vcs.modified":
+			dirty = setting.Value
+		}
+	}
+
+	if dirty == "true" {
+		dirty = "dirty"
+	} else {
+		dirty = ""
+	}
+
+	return fmt.Sprintf("%s+%s.%s built using %s", info.Main.Version, commit[:7], dirty, info.GoVersion)
 }

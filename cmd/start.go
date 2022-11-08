@@ -147,11 +147,6 @@ func getStartParametersInteractive() (project, task string, timestamp time.Time,
 	timestampDefault := time.Now().Round(tt.GetConfig().GetRoundStartTime())
 	if len(timers) > 0 && timers[0].Stop != nil {
 		timestampDefault = *timers[0].Stop
-
-	}
-
-	if tt.GetConfig().GetRoundStartTime() == 0 {
-		timestampDefault = timestampDefault.Round(tt.GetConfig().GetRoundStartTime())
 	}
 
 	if datesEqual(time.Now(), timestampDefault) {

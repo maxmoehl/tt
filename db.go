@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	FieldStart   Field = "start"
-	FieldProject Field = "project"
-	FieldTask    Field = "task"
-	FieldDay     Field = "day"
+	FieldStart   = "start"
+	FieldProject = "project"
+	FieldTask    = "task"
+	FieldDay     = "day"
 
 	OrderAsc Order = "ASC"
 	OrderDsc Order = "DESC"
@@ -36,11 +36,10 @@ type DB interface {
 	RemoveVacationDay(string) error
 }
 
-type Field string
 type Order string
 
 type OrderBy struct {
-	Field Field
+	Field string
 	Order Order
 }
 

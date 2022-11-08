@@ -54,21 +54,27 @@ func version() string {
 		panic("tt must be built with go module support")
 	}
 
-	var commit, dirty string
+	v := info.Main.Version
+
+	var revision, modified string
 	for _, setting := range info.Settings {
 		switch setting.Key {
 		case "vcs.revision":
-			commit = setting.Value
+			revision = setting.Value
 		case "vcs.modified":
-			dirty = setting.Value
+			modified = setting.Value
 		}
 	}
 
-	if dirty == "true" {
-		dirty = "dirty"
-	} else {
-		dirty = ""
+	if revision != "" && len(revision) > 7 {
+		v += "." + revision[:7]
+	} else if revision != "" {
+		v += "." + revision
 	}
 
-	return fmt.Sprintf("%s+%s.%s built using %s", info.Main.Version, commit[:7], dirty, info.GoVersion)
+	if modified == "true" {
+		v += "." + "modified"
+	}
+
+	return v + " built using " + info.GoVersion
 }

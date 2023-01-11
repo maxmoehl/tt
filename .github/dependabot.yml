@@ -1,6 +1,6 @@
 version: 2
 updates:
-  package-ecosystem: "gomod"
+- package-ecosystem: "gomod"
   directory: "/"
   schedule:
     interval: "weekly"
@@ -8,7 +8,7 @@ updates:
     timezone: "Europe/Berlin"
     day: "monday"
   reviewers:
-    - "maxmoehl"
+  - "maxmoehl"
   commit-message:
     prefix: "dep"
 

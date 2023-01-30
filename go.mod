@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
-	github.com/fatih/color v1.14.0
+	github.com/fatih/color v1.14.1
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/google/uuid v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.16

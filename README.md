@@ -18,13 +18,11 @@ We are currently lacking automated tests therefore install this application is a
 own risk. To get the most recent version (that is somewhat manually tested) set a valid
 version instead of `latest`, i.e. `v0.1.1`.
 
-The build tag `json1` is needed to compile `go-sqlite3` with support for JSON. The
-optional build tag `grpc` can be used to enable a new sub command to start a [gRPC](https://grpc.io)
-server. However, this roughly doubles the size of the resulting binary from around
-9 MB to 16MB.
+The optional build tag `grpc` can be used to enable a new sub command to start a [gRPC](https://grpc.io)
+server. However, this roughly doubles the size of the resulting binary from around 9 MB to 16MB.
 
 ```
-$ go install -tags "json1" github.com/maxmoehl/tt@latest
+$ go install github.com/maxmoehl/tt@latest
 ```
 
 If you already installed a version, you can check with the `--version` flag which version
@@ -39,3 +37,4 @@ tt version v0.1.1
 
 Documentation is available as part of the cli. Only calling `tt` prints out a help
 section from which you can explore the different commands.
+

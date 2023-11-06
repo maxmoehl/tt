@@ -7,7 +7,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/google/uuid v1.4.0
-	github.com/mattn/go-sqlite3 v1.14.17
+	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/spf13/cobra v1.7.0
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.31.0

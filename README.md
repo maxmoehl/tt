@@ -5,14 +5,14 @@
 
 `tt` is a cli application that can be used to track time. This README will be expanded when I have more time.
 
-# Configuration
+## Configuration
 
 The environment variable `TT_HOME_DIR` specifies where the application should look for
 a configuration file and store any information it collects. If `TT_HOME_DIR` is not set
 `$HOME/.tt` is used. If a file named `config.json` is present in the directory the
 config is read from it, otherwise defaults are used.
 
-# Installation
+## Installation
 
 We are currently lacking automated tests therefore install this application is at your
 own risk. To get the most recent version (that is somewhat manually tested) set a valid
@@ -30,8 +30,15 @@ $ tt --version
 tt version v0.1.1
 ```
 
-# Usage
+## Usage
 
 Documentation is available as part of the cli. Only calling `tt` prints out a help
 section from which you can explore the different commands.
 
+## Integrations
+
+### SwiftBar
+
+tt can be run from [SwiftBar](https://swiftbar.app). A flexible example is
+provided in `swiftbar.sh` and a more static one on `swiftbar-static.sh`. See the
+comments in each script for details.

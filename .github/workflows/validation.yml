@@ -1,11 +1,11 @@
-name: Run tests and build
+name: validation
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 jobs:
-  run-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: checkout

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/maxmoehl/tt/cmd"
+	"moehl.dev/tt/cmd"
 )
 
 func main() {

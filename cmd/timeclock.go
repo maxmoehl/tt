@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/maxmoehl/tt"
+	"moehl.dev/tt"
 
 	"github.com/spf13/cobra"
 )

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/maxmoehl/tt"
+	"moehl.dev/tt"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"

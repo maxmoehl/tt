@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"moehl.dev/tt"
+
 	"github.com/google/uuid"
-	"github.com/maxmoehl/tt"
 	"github.com/spf13/cobra"
 )
 

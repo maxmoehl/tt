@@ -19,7 +19,7 @@ own risk. To get the most recent version (that is somewhat manually tested) set 
 version instead of `latest`, i.e. `v0.1.1`.
 
 ```
-$ go install github.com/maxmoehl/tt@latest
+$ go install moehl.dev/tt/tt@latest
 ```
 
 If you already installed a version, you can check with the `--version` flag which version

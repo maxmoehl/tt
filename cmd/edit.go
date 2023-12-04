@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"moehl.dev/tt"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/google/uuid"
-	"github.com/maxmoehl/tt"
 	"github.com/spf13/cobra"
 )
 

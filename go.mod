@@ -1,4 +1,4 @@
-module github.com/maxmoehl/tt
+module moehl.dev/tt
 
 go 1.18
 

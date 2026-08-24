@@ -1,13 +1,13 @@
 module moehl.dev/tt
 
-go 1.18
+go 1.21
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/fatih/color v1.18.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/mattn/go-sqlite3 v1.14.50
 	github.com/spf13/cobra v1.8.1
 )
 
